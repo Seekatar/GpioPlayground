@@ -1,0 +1,98 @@
+<html>
+<head>
+<script lang="ja">
+	function whichTransitionEvent() {
+		var t;
+		var el = document.createElement('fakeelement');
+		var transitions = {
+			'transition': 'transitionend',
+			'OTransition': 'oTransitionEnd',
+			'MozTransition': 'transitionend',
+			'WebkitTransition': 'webkitTransitionEnd'
+		}
+
+		for (t in transitions) {
+			if (el.style[t] !== undefined) {
+				return transitions[t];
+			}
+		}
+	}
+
+	/* Listen for a transition! */
+	var transitionEvent = whichTransitionEvent();
+
+	function doit(me, name)
+	{
+		var x = new XMLHttpRequest();
+		x.open("GET", "http://"+window.location.hostname+":"+window.location.port+"/"+name, false);
+		x.send(null);
+		document.getElementById("resp").addEventListener(transitionEvent, function() {
+				document.getElementById("resp").classList.add("fadedOut") } );
+		document.getElementById("resp").classList.remove("fadedOut")
+		//return x.responseText;
+    }
+
+
+
+</script>
+<style>
+.button {
+    background-color: #4CAF50; /* Green */
+    border: none;
+    color: white;
+    padding: 15px 32px;
+    text-align: center;
+    text-decoration: none;
+    display: inline-block;
+    font-size: 16px;
+    margin: 4px 2px;
+    cursor: pointer;
+	border-radius: 8px; 
+	width: 100%
+}
+
+.button1 {background-color: Red}
+.button2 {background-color: Blue}
+.button3 {background-color: Green}
+.button4 {background-color: Purple }
+.button5 {background-color: DarkRed}
+
+.successfully-saved.hide-opacity{
+    opacity: 0;
+}
+
+.successfully-saved {
+    text-align: center;
+
+    -webkit-transition: opacity 3s ease-in-out;
+    -moz-transition: opacity 3s ease-in-out;
+    -ms-transition: opacity 3s ease-in-out;
+    -o-transition: opacity 3s ease-in-out;
+     opacity: 1;
+}
+
+.fader {
+	text-align: center;
+    -moz-transition: opacity 2s linear;
+    -o-transition: opacity 2s linear;
+    -webkit-transition: opacity 2s linear;
+    transition: opacity 2s ease-out;
+	opacity: 1;
+}
+
+.fader.fadedOut {
+    opacity: 0;
+}
+</style>
+
+<meta charset="UTF-8" />
+</head>
+<body>
+	<button class="button button1" onclick="doit(this,'classical')">Classical</button><br>
+	<button class="button button2" onclick="doit(this,'swing')">Swing</button><br>
+	<button class="button button3" onclick="doit(this,'electroswing')">ElectroSwing</button><br>
+	<button class="button button4" onclick="doit(this,'electronic')">Electronic</button><br>
+	<button class="button button5" onclick="doit(this,'alert')">Alert</button><br>
+	<div class="fader fadedOut" id="resp">ALERTED!</div>
+</body>
+</html>

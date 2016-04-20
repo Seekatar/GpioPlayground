@@ -1,0 +1,87 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003" DefaultTargets="Build">
+  <PropertyGroup>
+    <Configuration Condition=" '$(Configuration)' == '' ">Debug</Configuration>
+    <SchemaVersion>2.0</SchemaVersion>
+    <ProjectGuid>{5979fc81-75ec-41f7-b025-5253a395296f}</ProjectGuid>
+    <ProjectHome />
+    <StartupFile />
+    <SearchPath />
+    <WorkingDirectory>.</WorkingDirectory>
+    <OutputPath>.</OutputPath>
+    <ProjectTypeGuids>{888888a0-9f3d-457c-b088-3a5042f75d52}</ProjectTypeGuids>
+    <LaunchProvider>Standard Python launcher</LaunchProvider>
+    <InterpreterId />
+    <InterpreterVersion />
+  </PropertyGroup>
+  <PropertyGroup Condition="'$(Configuration)' == 'Debug'" />
+  <PropertyGroup Condition="'$(Configuration)' == 'Release'" />
+  <PropertyGroup>
+    <VisualStudioVersion Condition=" '$(VisualStudioVersion)' == '' ">10.0</VisualStudioVersion>
+    <PtvsTargetsFile>$(MSBuildExtensionsPath32)\Microsoft\VisualStudio\v$(VisualStudioVersion)\Python Tools\Microsoft.PythonTools.targets</PtvsTargetsFile>
+  </PropertyGroup>
+  <ItemGroup>
+    <Content Include="ADC\RpiC\readMCP3008.c">
+      <SubType>Code</SubType>
+    </Content>
+    <Content Include="Starter Kit for Arduino\Lesson 9 Thermistor\circuit\circuit\Thermistor_bb.png" />
+    <Content Include="Starter Kit for Arduino\Library\Servo\keywords.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Compile Include="ADC\RpiPy\adc.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="BAM\RPiPy\BamMatrix.py" />
+    <Compile Include="BAM\RPiPy\BitGrid.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="BAM\RPiPy\BitMappedLedMatrix.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="BAM\RPiPy\ScrollingText.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="IoTest\RpiPy\Input.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="IrRemote\RpiPy\lirctest.py" />
+    <Compile Include="MotionSensor\RPiPy\MotionSensor.py" />
+    <Compile Include="PWM\RPiPy\pwm_LED.py" />
+    <Compile Include="PWM\RPiPy\pwm_RgbLED.py" />
+    <Compile Include="PWM\RPiPy\pwm_sound.py" />
+    <Compile Include="Ultrasonic\RPiPy\Ultrasonic.py" />
+    <Compile Include="Ultrasonic\RPiPy\UltrasonicLed.py">
+      <SubType>Code</SubType>
+    </Compile>
+    <Compile Include="Ultrasonic\RPiPy\UltrasonicWithLeds.py" />
+  </ItemGroup>
+  <ItemGroup>
+    <Folder Include="3ColorLEDHeadless\" />
+    <Folder Include="4Relay\" />
+    <Folder Include="ADC\RpiPy\" />
+    <Folder Include="ADC\RpiC\" />
+    <Folder Include="BAM\" />
+    <Folder Include="BAM\RPiPy\" />
+    <Folder Include="BasicServo\" />
+    <Folder Include="DCMotor\" />
+    <Folder Include="IoTest\RpiPy\" />
+    <Folder Include="IrRemote\" />
+    <Folder Include="IrRemote\RpiPy" />
+    <Folder Include="MotionSensor\" />
+    <Folder Include="MotionSensor\RPiPy\" />
+    <Folder Include="IoTest\" />
+    <Folder Include="ADC\" />
+    <Folder Include="PWM\" />
+    <Folder Include="PWM\RPiPy" />
+    <Folder Include="Starter Kit for Arduino\" />
+    <Folder Include="Starter Kit for Arduino\Lesson 9 Thermistor\" />
+    <Folder Include="Starter Kit for Arduino\Lesson 9 Thermistor\circuit\" />
+    <Folder Include="Starter Kit for Arduino\Lesson 9 Thermistor\circuit\circuit" />
+    <Folder Include="Starter Kit for Arduino\Library\" />
+    <Folder Include="Starter Kit for Arduino\Library\Servo" />
+    <Folder Include="Ultrasonic\" />
+    <Folder Include="Ultrasonic\RPiPy" />
+  </ItemGroup>
+  <Import Project="$(PtvsTargetsFile)" Condition="Exists($(PtvsTargetsFile))" />
+  <Import Project="$(MSBuildToolsPath)\Microsoft.Common.targets" Condition="!Exists($(PtvsTargetsFile))" />
+</Project>
