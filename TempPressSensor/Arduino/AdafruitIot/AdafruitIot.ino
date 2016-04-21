@@ -306,8 +306,6 @@ void initWifi()
 #endif
 
   delay(2000);
-  while ( !Serial )
-    delay(100);
     
   Serial.println(F("Initializing WINC1500!"));
 
