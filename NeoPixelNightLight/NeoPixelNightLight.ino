@@ -22,7 +22,8 @@ RTC_DS1307 rtc;
 
 #define ANALOG_COLOR_PIN A0  
 #define ANALOG_BRIGHTNESS_PIN A1  
-#define SWIPE_WAIT 50
+// how fast the wipe is when changing colors
+#define SWIPE_WAIT 0
 
 // Parameter 1 = number of pixels in strip
 // Parameter 2 = Arduino pin number (most are valid)
@@ -38,14 +39,12 @@ Adafruit_NeoPixel strip = Adafruit_NeoPixel(NEOPIXEL_LEDS, NEOPIXEL_DATA_PIN, NE
 // and minimize distance between Arduino and first pixel.  Avoid connecting
 // on a live circuit...if you must, connect GND first.
 
-byte sensorValue = 0;        // value read from the pot
+byte sensorValue = 0;          // value read from the pot
 float brightnessValue = 1.0;   // value read from the pot
 // end neopixel
 
 // clock settings
-int hr = 0;
-int min = 0;
-int sec = 0;
+DateTime current;
 
 uint32_t secColor = 0;
 uint32_t minColor = 0;
@@ -56,56 +55,150 @@ uint32_t hrColor = 0;
 #define CLOCK_MODE  1
 #define NIGHTLIGHT_MODE 2
 
-int mode = BACKLIGHT_MODE;
+#define MODE_SWITCH_PIN 10
+int mode = CLOCK_MODE; // BACKLIGHT_MODE;
+char s[200];
+
+DateTime wakeTime = DateTime( 2016,1,1,17,45); // 5:45am
 
 /*******************************************************************************
 *******************************************************************************/
 void setup() {
+
+  pinMode(MODE_SWITCH_PIN,INPUT_PULLUP);
   
   rtcSetup();
   neoPixelSetup();
   
 }
 
+bool pressed = false;
 /*******************************************************************************
 *******************************************************************************/
 void loop() {
 
-  Serial.print("in loop with mode of");
-  Serial.println(mode);
+  current = rtc.now();
+  
   switch ( mode )
   {
     case BACKLIGHT_MODE:
       backlight();
       break;
     case CLOCK_MODE:
-      clocklight();
+      clocklight(current);
       break;
     case NIGHTLIGHT_MODE:
-      nightlight();
+      nightlight(current);
       break;
   }
-
+  
+  if ( digitalRead(MODE_SWITCH_PIN) == LOW )
+  {
+    if ( !pressed )
+    {
+      pressed = true;
+      mode++;
+      if ( mode > NIGHTLIGHT_MODE )
+        mode = BACKLIGHT_MODE;
+      
+      Serial.print("Switching mode to ");
+      Serial.println(mode);
+      clearPixels();
+    }
+  }
+  else
+    pressed = false;
 }
+
+int sec = 0;
+int min = 0;
+int hr = 0;
+
+void clearPixels()
+{
+  for ( int i = 0; i < NEOPIXEL_LEDS; i++ )
+    strip.setPixelColor(i,0);
+}
+/*******************************************************************************
+*******************************************************************************/
+void clocklight(DateTime current) 
+{
+  strip.setPixelColor(sec,0);
+  strip.setPixelColor(min,0);
+  strip.setPixelColor(hr,0);
+  
+  sec = current.second() / 5;
+  min = current.minute() / 5;
+  hr = current.hour() % 12;
+  
+  strip.setPixelColor(sec,secColor);
+  strip.setPixelColor(min,minColor);
+  strip.setPixelColor(hr,hrColor);
+
+  if ( sec == min && sec == hr )
+    strip.setPixelColor(sec,secColor | minColor | hrColor );
+  else if ( sec == min )
+    strip.setPixelColor(sec,secColor | minColor);
+  else if ( sec == hr )
+    strip.setPixelColor(sec,secColor | hrColor);
+  else if ( min == hr )
+    strip.setPixelColor(min,minColor | hrColor);
+  
+  strip.show();
+  
+  sprintf( s, "%d:%d:%d - %d %d %d", current.hour(), current.minute(), current.second(), hr,min,sec);
+  Serial.println(s);  
+}
+
+int prevHours = -1;
 
 /*******************************************************************************
 *******************************************************************************/
-void clocklight() 
+void nightlight(DateTime current) 
 {
+  // how many hours until wakey?
+  double currentMin = 60.0*current.hour() + current.minute();
+  double wakeyMin = 60.0*wakeTime.hour() + wakeTime.minute();
+
+  double diffMin = wakeyMin - currentMin;
+  if ( diffMin < 0 ) 
+    diffMin = wakeyMin + (24.0*60)-currentMin; // remains of today + until wakey
+  int newHours = (diffMin / 60)+.5;
+  if ( newHours > 12 )
+    newHours = 12;
+    
+  bool show = checkColorChange();
+  
+  if ( prevHours != newHours || show )
+  {
+    show = true;
+    if ( prevHours >= 0 )
+      strip.setPixelColor(prevHours,0);
+    for ( int i = 0; i < abs(newHours); i++ )
+      strip.setPixelColor(i,sensorValue);
+    Serial.print( "PreHours ");
+    Serial.print( prevHours );
+    Serial.print( " newHours ");
+    Serial.println( newHours );
+    prevHours = newHours;
+  }
+
+  Serial.print( "Wakey current is ");
+  Serial.print( currentMin );
+  Serial.print( " and wakey is ");
+  Serial.print( wakeyMin );
+  Serial.print( " and diffMin is ");
+  Serial.print( diffMin );
+  Serial.print( " and show is ");
+  Serial.println( show );
+  delay(500);
+
+  if ( show )
+    strip.show();
 }
 
-/*******************************************************************************
-*******************************************************************************/
-void nightlight() 
+bool checkColorChange()
 {
-
-}
-
-/*******************************************************************************
-*******************************************************************************/
-void backlight() 
-{
-
   // read the analog in value:
   byte newSensorValue = map(analogRead(ANALOG_COLOR_PIN), 0, 1023, 0, 255);
   bool updateNeo = false;
@@ -114,8 +207,8 @@ void backlight()
       sensorValue = newSensorValue;
       updateNeo = true;
   }
+
   float newSensorBrightness = map(analogRead(ANALOG_BRIGHTNESS_PIN), 0, 1023, 0, 255);
-  
   if (  brightnessValue != newSensorBrightness )
   {
       updateNeo = true;
@@ -123,7 +216,14 @@ void backlight()
       strip.setBrightness(brightnessValue);
   }
   
-  if ( updateNeo )
+  return updateNeo;  
+}
+
+/*******************************************************************************
+*******************************************************************************/
+void backlight() 
+{
+  if ( checkColorChange() )
   {
     colorWipe(Wheel(sensorValue),SWIPE_WAIT);
   }
