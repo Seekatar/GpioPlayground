@@ -59,16 +59,16 @@ Adafruit_BME280 bme(BME_CS, BME_MOSI, BME_MISO,  BME_SCK); // I2C wasn't working
 // On an Arduino Zero use the 6-pin ICSP header, see:
 //   https://www.arduino.cc/en/Reference/SPI
 
-
+#include "my_keys.h"
+// my_keys.h should have values like in the comment
+/*
 // Configure WiFi access point details.
 #define WLAN_SSID       "yourSSID"  // can't be longer than 32 characters!
 #define WLAN_PASS       "yourpasskey"
-//#define WLAN_SECURITY   WLAN_SEC_WPA2  // Can be: WLAN_SEC_UNSEC, WLAN_SEC_WEP, 
-                                         //         WLAN_SEC_WPA or WLAN_SEC_WPA2
 
 // Configure Adafruit IO access.
 #define AIO_KEY    "youriotkey"
-
+*/
 
 // Setup the WINC1500 connection with the pins above and the default hardware SPI.
 Adafruit_WINC1500 WiFi(WINC_CS, WINC_IRQ, WINC_RST);

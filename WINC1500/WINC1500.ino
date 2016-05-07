@@ -9,9 +9,10 @@
 //
 // Written by Tony DiCola for Adafruit Industries.  
 // MIT license, all text above must be included in any redistribution.
+#define ADAFRUIT_IO_DEBUG
 #include <Adafruit_WINC1500.h>
 #include <SPI.h>
-#include "utility/debug.h"
+//#include "utility/debug.h"
 #include "Adafruit_IO_WINC1500.h"
 
 
