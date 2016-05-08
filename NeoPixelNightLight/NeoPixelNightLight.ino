@@ -1,3 +1,6 @@
+//#define DEBUG
+#include <EEPROM.h>
+
 // RTC
 // Date and time functions using a DS1307 RTC connected via I2C and Wire lib
 #include <Wire.h>
@@ -39,7 +42,7 @@ Adafruit_NeoPixel strip = Adafruit_NeoPixel(NEOPIXEL_LEDS, NEOPIXEL_DATA_PIN, NE
 // and minimize distance between Arduino and first pixel.  Avoid connecting
 // on a live circuit...if you must, connect GND first.
 
-byte sensorValue = 0;          // value read from the pot
+byte colorValue = 0;          // value read from the pot
 float brightnessValue = 1.0;   // value read from the pot
 // end neopixel
 
@@ -50,6 +53,14 @@ uint32_t secColor = 0;
 uint32_t minColor = 0;
 uint32_t hrColor = 0;
 
+#ifdef DEBUG
+  #define DEBUG_PRINT(n) Serial.print(n);
+  #define DEBUG_PRINTLN(n) {Serial.println(n); delay(100); }
+#else
+  #define DEBUG_PRINT(n) {}
+  #define DEBUG_PRINTLN(n) {}
+#endif
+
 // mode settings
 #define BACKLIGHT_MODE 0
 #define CLOCK_MODE  1
@@ -59,20 +70,29 @@ uint32_t hrColor = 0;
 int mode = CLOCK_MODE; // BACKLIGHT_MODE;
 char s[200];
 
-DateTime wakeTime = DateTime( 2016,1,1,17,45); // 5:45am
+DateTime wakeTime = DateTime( 2016,1,1, // ignore y,m,d
+                              5,45); // 5:45am
+
+#define MODE_INDEX 0
 
 /*******************************************************************************
 *******************************************************************************/
 void setup() {
 
   pinMode(MODE_SWITCH_PIN,INPUT_PULLUP);
-  
+
+  EEPROM.get(MODE_INDEX,mode);
+
+  Serial.print(F("Got mode from eeprom ") );
+  Serial.println(mode);
+   
   rtcSetup();
   neoPixelSetup();
   
 }
 
 bool pressed = false;
+bool forceChange = false;
 /*******************************************************************************
 *******************************************************************************/
 void loop() {
@@ -82,15 +102,16 @@ void loop() {
   switch ( mode )
   {
     case BACKLIGHT_MODE:
-      backlight();
+      backlight(forceChange);
       break;
     case CLOCK_MODE:
       clocklight(current);
       break;
     case NIGHTLIGHT_MODE:
-      nightlight(current);
+      nightlight(current, forceChange);
       break;
   }
+  forceChange = false;
   
   if ( digitalRead(MODE_SWITCH_PIN) == LOW )
   {
@@ -100,9 +121,12 @@ void loop() {
       mode++;
       if ( mode > NIGHTLIGHT_MODE )
         mode = BACKLIGHT_MODE;
-      
-      Serial.print("Switching mode to ");
+
+      forceChange = true;
+      Serial.print(F("Switching mode to "));
       Serial.println(mode);
+      EEPROM.put(MODE_INDEX,mode);
+
       clearPixels();
     }
   }
@@ -145,16 +169,18 @@ void clocklight(DateTime current)
     strip.setPixelColor(min,minColor | hrColor);
   
   strip.show();
-  
+
+  #ifdef DEBUG
   sprintf( s, "%d:%d:%d - %d %d %d", current.hour(), current.minute(), current.second(), hr,min,sec);
-  Serial.println(s);  
+  DEBUG_PRINTLN(s);  
+  #endif
 }
 
 int prevHours = -1;
 
 /*******************************************************************************
 *******************************************************************************/
-void nightlight(DateTime current) 
+void nightlight(DateTime current, bool forceChange) 
 {
   // how many hours until wakey?
   double currentMin = 60.0*current.hour() + current.minute();
@@ -165,9 +191,9 @@ void nightlight(DateTime current)
     diffMin = wakeyMin + (24.0*60)-currentMin; // remains of today + until wakey
   int newHours = (diffMin / 60)+.5;
   if ( newHours > 12 )
-    newHours = 12;
+    newHours = 11; // so can tell difference between this and backlight
     
-  bool show = checkColorChange();
+  bool show = forceChange || checkColorChange();
   
   if ( prevHours != newHours || show )
   {
@@ -175,23 +201,22 @@ void nightlight(DateTime current)
     if ( prevHours >= 0 )
       strip.setPixelColor(prevHours,0);
     for ( int i = 0; i < abs(newHours); i++ )
-      strip.setPixelColor(i,sensorValue);
-    Serial.print( "PreHours ");
-    Serial.print( prevHours );
-    Serial.print( " newHours ");
-    Serial.println( newHours );
+      strip.setPixelColor(i,Wheel(colorValue));
+    DEBUG_PRINT( F("PreHours "));
+    DEBUG_PRINT( prevHours );
+    DEBUG_PRINT( F(" newHours "));
+    DEBUG_PRINTLN( newHours );
     prevHours = newHours;
   }
 
-  Serial.print( "Wakey current is ");
-  Serial.print( currentMin );
-  Serial.print( " and wakey is ");
-  Serial.print( wakeyMin );
-  Serial.print( " and diffMin is ");
-  Serial.print( diffMin );
-  Serial.print( " and show is ");
-  Serial.println( show );
-  delay(500);
+  DEBUG_PRINT( F("Wakey current is "));
+  DEBUG_PRINT( currentMin );
+  DEBUG_PRINT( F(" and wakey is "));
+  DEBUG_PRINT( wakeyMin );
+  DEBUG_PRINT( F(" and diffMin is "));
+  DEBUG_PRINT( diffMin );
+  DEBUG_PRINT( F(" and show is "));
+  DEBUG_PRINTLN( show );
 
   if ( show )
     strip.show();
@@ -202,9 +227,9 @@ bool checkColorChange()
   // read the analog in value:
   byte newSensorValue = map(analogRead(ANALOG_COLOR_PIN), 0, 1023, 0, 255);
   bool updateNeo = false;
-  if ( newSensorValue != sensorValue )
+  if ( newSensorValue != colorValue )
   {
-      sensorValue = newSensorValue;
+      colorValue = newSensorValue;
       updateNeo = true;
   }
 
@@ -221,11 +246,11 @@ bool checkColorChange()
 
 /*******************************************************************************
 *******************************************************************************/
-void backlight() 
+void backlight(bool forceChange ) 
 {
-  if ( checkColorChange() )
+  if ( forceChange || checkColorChange() )
   {
-    colorWipe(Wheel(sensorValue),SWIPE_WAIT);
+    colorWipe(Wheel(colorValue),SWIPE_WAIT);
   }
 
 }
@@ -284,13 +309,13 @@ void rtcSetup() {
   if (! rtc.begin()) {
     while (1)
     {
-      Serial.println("Couldn't find RTC");
+      Serial.println(F("Couldn't find RTC"));
       delay(1000);
     }
   }
 
   if (! rtc.isrunning()) {
-    Serial.println("RTC is NOT running!");
+    Serial.println(F("RTC is NOT running!"));
     // following line sets the RTC to the date & time this sketch was compiled
     rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
   }  
