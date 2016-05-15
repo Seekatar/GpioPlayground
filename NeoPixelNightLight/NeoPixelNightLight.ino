@@ -61,10 +61,28 @@ uint32_t hrColor = 0;
   #define DEBUG_PRINTLN(n) {}
 #endif
 
+void printTime( DateTime &dt )
+{
+  Serial.print( dt.hour() );
+  int minutes = dt.minute();
+  int seconds = dt.second();
+  if ( minutes < 10 )
+    Serial.print( ":0" );
+  else
+    Serial.print( ":" );
+  Serial.print(minutes);
+  if ( seconds < 10 )
+    Serial.print( ":0" );
+  else
+    Serial.print( ":" );
+  Serial.print(seconds);
+ 
+}
 // mode settings
 #define BACKLIGHT_MODE 0
 #define CLOCK_MODE  1
-#define NIGHTLIGHT_MODE 2
+#define FADING_BACKLIGHT_MODE 2
+#define NIGHTLIGHT_MODE 3
 
 #define MODE_SWITCH_PIN 10
 int mode = CLOCK_MODE; // BACKLIGHT_MODE;
@@ -78,6 +96,12 @@ DateTime wakeTime = DateTime( 2016,1,1, // ignore y,m,d
 /*******************************************************************************
 *******************************************************************************/
 void setup() {
+
+#ifndef ESP8266
+  while (!Serial); // for Leonardo/Micro/Zero
+#endif
+
+  Serial.begin(57600);
 
   pinMode(MODE_SWITCH_PIN,INPUT_PULLUP);
 
@@ -107,6 +131,9 @@ void loop() {
     case CLOCK_MODE:
       clocklight(current);
       break;
+    case FADING_BACKLIGHT_MODE:
+      fadingBacklight(current, forceChange);
+      break;
     case NIGHTLIGHT_MODE:
       nightlight(current, forceChange);
       break;
@@ -123,7 +150,8 @@ void loop() {
         mode = BACKLIGHT_MODE;
 
       forceChange = true;
-      Serial.print(F("Switching mode to "));
+      printTime(current);
+      Serial.print(F(" Switching mode to "));
       Serial.println(mode);
       EEPROM.put(MODE_INDEX,mode);
 
@@ -167,6 +195,9 @@ void clocklight(DateTime current)
     strip.setPixelColor(sec,secColor | hrColor);
   else if ( min == hr )
     strip.setPixelColor(min,minColor | hrColor);
+  
+  checkColorChange();
+  strip.setBrightness(brightnessValue);
   
   strip.show();
 
@@ -222,6 +253,9 @@ void nightlight(DateTime current, bool forceChange)
     strip.show();
 }
 
+/*******************************************************************************
+ * check to see if the analog inputs have change the color or brightness
+*******************************************************************************/
 bool checkColorChange()
 {
   // read the analog in value:
@@ -244,6 +278,27 @@ bool checkColorChange()
   return updateNeo;  
 }
 
+DateTime lastChange(2000,1,1);
+byte fadeColorValue = 0;
+
+/*******************************************************************************
+ * color changing backlight
+*******************************************************************************/
+void fadingBacklight(DateTime &current, bool forceChange ) 
+{
+  TimeSpan ts = current - lastChange;
+
+  if ( forceChange || ts.totalseconds() > 1 ) 
+  {
+    checkColorChange(); // for brightness only
+    fadeColorValue++;
+    if ( fadeColorValue > 255 )
+      fadeColorValue = 0;
+    colorWipe(Wheel(fadeColorValue),SWIPE_WAIT);
+    lastChange = current;
+  }
+}
+
 /*******************************************************************************
 *******************************************************************************/
 void backlight(bool forceChange ) 
@@ -252,7 +307,6 @@ void backlight(bool forceChange )
   {
     colorWipe(Wheel(colorValue),SWIPE_WAIT);
   }
-
 }
 
 // Input a value 0 to 255 to get a color value.
@@ -292,20 +346,16 @@ void neoPixelSetup()
   strip.begin();
   strip.show(); // Initialize all pixels to 'off'
 
-  secColor = strip.Color(0,0,10);  
-  minColor = strip.Color(0,10,0);  
-  hrColor = strip.Color(10,0,0);  
+  secColor = strip.Color(0,0,255);  
+  minColor = strip.Color(0,255,0);  
+  hrColor = strip.Color(255,0,0);  
   
 }
 
 /*******************************************************************************
 *******************************************************************************/
 void rtcSetup() {
-#ifndef ESP8266
-  while (!Serial); // for Leonardo/Micro/Zero
-#endif
 
-  Serial.begin(57600);
   if (! rtc.begin()) {
     while (1)
     {
