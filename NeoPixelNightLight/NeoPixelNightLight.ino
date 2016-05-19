@@ -1,4 +1,4 @@
-//#define DEBUG
+#define DEBUG
 #include <EEPROM.h>
 
 // RTC
@@ -82,21 +82,27 @@ void printTime( DateTime &dt )
 #define BACKLIGHT_MODE 0
 #define CLOCK_MODE  1
 #define FADING_BACKLIGHT_MODE 2
-#define NIGHTLIGHT_MODE 3
+#define ALARM_ENTER 3
+#define NIGHTLIGHT_MODE 4
+char *modes[] = {"Backlight", "Clock", "Fader", "AlarmEnter", "Nightlight"};
 
 #define MODE_SWITCH_PIN 10
 int mode = CLOCK_MODE; // BACKLIGHT_MODE;
 char s[200];
 
+DateTime compileTime;
 DateTime wakeTime = DateTime( 2016,1,1, // ignore y,m,d
                               5,45); // 5:45am
 
-#define MODE_INDEX 0
+// EEPROM indexes
+const int MODE_INDEX = 0;
+const int WAKE_INDEX = (MODE_INDEX+sizeof(mode));
 
 /*******************************************************************************
 *******************************************************************************/
 void setup() {
-
+  compileTime = DateTime(F(__DATE__), F(__TIME__));
+  
 #ifndef ESP8266
   while (!Serial); // for Leonardo/Micro/Zero
 #endif
@@ -106,22 +112,40 @@ void setup() {
   pinMode(MODE_SWITCH_PIN,INPUT_PULLUP);
 
   EEPROM.get(MODE_INDEX,mode);
-
   Serial.print(F("Got mode from eeprom ") );
   Serial.println(mode);
-   
+  if ( mode < 0 )
+    mode = 0;
+
+  int32_t wakeUnixTime;
+  EEPROM.get(WAKE_INDEX,wakeUnixTime);
+  Serial.print(F("Got wakeTime from eeprom ") );
+  Serial.println(wakeUnixTime);
+  if ( wakeUnixTime >= 0 )
+    wakeTime = DateTime(wakeUnixTime);
+  
   rtcSetup();
   neoPixelSetup();
   
 }
-
+bool rtcRunning = false;
 bool pressed = false;
 bool forceChange = false;
+
+DateTime getCurrent()
+{
+  if ( rtcRunning )
+    return rtc.now();
+  else
+    return compileTime.unixtime() + millis()/1000; 
+}
+
 /*******************************************************************************
 *******************************************************************************/
 void loop() {
 
-  current = rtc.now();
+  current = getCurrent();
+  bool next = false;
   
   switch ( mode )
   {
@@ -134,28 +158,34 @@ void loop() {
     case FADING_BACKLIGHT_MODE:
       fadingBacklight(current, forceChange);
       break;
+    case ALARM_ENTER:
+      if ( enterAlarm(forceChange) )
+        next = true;
+      break;
     case NIGHTLIGHT_MODE:
       nightlight(current, forceChange);
       break;
   }
   forceChange = false;
   
-  if ( digitalRead(MODE_SWITCH_PIN) == LOW )
+  if ( digitalRead(MODE_SWITCH_PIN) == LOW  || next )
   {
-    if ( !pressed )
+    if ( !pressed || next )
     {
+      next = false;
       pressed = true;
       mode++;
-      if ( mode > NIGHTLIGHT_MODE )
+      if ( mode >= sizeof(modes)/sizeof(char*) )
         mode = BACKLIGHT_MODE;
 
       forceChange = true;
       printTime(current);
       Serial.print(F(" Switching mode to "));
-      Serial.println(mode);
+      Serial.println(modes[mode]);
       EEPROM.put(MODE_INDEX,mode);
 
       clearPixels();
+      strip.show();
     }
   }
   else
@@ -170,6 +200,62 @@ void clearPixels()
 {
   for ( int i = 0; i < NEOPIXEL_LEDS; i++ )
     strip.setPixelColor(i,0);
+}
+
+bool prompted = false;
+int currentPixel = 0;
+
+bool enterAlarm(bool forceChange)
+{
+  if ( !prompted || forceChange)
+  {
+    clearPixels();
+    strip.show();
+    Serial.print(F("Current wake time is "));
+    printTime(wakeTime);
+    Serial.println("");
+    Serial.println(F("Enter time to wake in 24 hour clock HH,MM"));
+    prompted = true;
+    
+  }
+  if ( millis() % 100 == 0 )
+  {
+      strip.setPixelColor(currentPixel,0);
+      strip.setPixelColor(NEOPIXEL_LEDS-currentPixel++,0);
+      if ( currentPixel >= NEOPIXEL_LEDS )
+        currentPixel = 0;
+      strip.setPixelColor(currentPixel,Wheel(colorValue));
+      strip.setPixelColor(NEOPIXEL_LEDS-currentPixel,Wheel(colorValue));
+      strip.show();
+      delay(5);
+  }
+  
+  // if there's any serial available, read it:
+  if (Serial.available() > 0) {
+    
+    // look for the next valid integer in the incoming serial stream:
+    int hours = Serial.parseInt();
+    // do it again:
+    int minutes = Serial.parseInt();
+    while (Serial.available() > 0) {
+      Serial.read(); // pull off rest
+    }
+    if ( hours >= 0 && hours < 24 && minutes >=0 && minutes < 60 )
+    {
+      wakeTime = DateTime( 2016,1,1, // ignore y,m,d
+                              hours,minutes); 
+      printTime(wakeTime);
+      Serial.println(F(" is new waketime"));     
+      EEPROM.put(WAKE_INDEX,wakeTime.unixtime());
+    }
+    else
+      Serial.println(F("Invalid time.  Must be 0-23 for hour and 0-59 for minute"));
+      
+    prompted = false;
+      
+    return true;
+  }
+  return false;
 }
 /*******************************************************************************
 *******************************************************************************/
@@ -240,14 +326,17 @@ void nightlight(DateTime current, bool forceChange)
     prevHours = newHours;
   }
 
-  DEBUG_PRINT( F("Wakey current is "));
-  DEBUG_PRINT( currentMin );
-  DEBUG_PRINT( F(" and wakey is "));
-  DEBUG_PRINT( wakeyMin );
-  DEBUG_PRINT( F(" and diffMin is "));
-  DEBUG_PRINT( diffMin );
-  DEBUG_PRINT( F(" and show is "));
-  DEBUG_PRINTLN( show );
+  if ( millis() % 1000 == 0 )
+  {
+    DEBUG_PRINT( F("Wakey - current: "));
+    DEBUG_PRINT( (int)wakeyMin );
+    DEBUG_PRINT( F("min - "));
+    DEBUG_PRINT( (int)currentMin );
+    DEBUG_PRINT( F("min and diff is "));
+    DEBUG_PRINT( (int)diffMin );
+    DEBUG_PRINT( F("min and show is "));
+    DEBUG_PRINTLN( show );
+  }
 
   if ( show )
     strip.show();
@@ -367,7 +456,7 @@ void rtcSetup() {
   if (! rtc.isrunning()) {
     Serial.println(F("RTC is NOT running!"));
     // following line sets the RTC to the date & time this sketch was compiled
-    rtc.adjust(DateTime(F(__DATE__), F(__TIME__)));
+    rtc.adjust(compileTime);
   }  
 }
 
