@@ -1,4 +1,4 @@
-#define DEBUG
+//#define DEBUG
 #include <EEPROM.h>
 
 // RTC
@@ -112,10 +112,10 @@ void setup() {
   pinMode(MODE_SWITCH_PIN,INPUT_PULLUP);
 
   EEPROM.get(MODE_INDEX,mode);
-  Serial.print(F("Got mode from eeprom ") );
-  Serial.println(mode);
-  if ( mode < 0 )
+  if ( mode < 0 || mode >= sizeof(modes)/sizeof(char*))
     mode = 0;
+  Serial.print(F("Got mode from eeprom ") );
+  Serial.println(modes[mode]);
 
   int32_t wakeUnixTime;
   EEPROM.get(WAKE_INDEX,wakeUnixTime);
@@ -137,7 +137,7 @@ DateTime getCurrent()
   if ( rtcRunning )
     return rtc.now();
   else
-    return compileTime.unixtime() + millis()/1000; 
+    return compileTime.unixtime() + millis()/50;  // 1000 for close to real time
 }
 
 /*******************************************************************************
@@ -294,48 +294,81 @@ void clocklight(DateTime current)
 }
 
 int prevHours = -1;
+int nextWake = 0;
+unsigned long lastWakeChange = 0;
 
 /*******************************************************************************
 *******************************************************************************/
 void nightlight(DateTime current, bool forceChange) 
 {
-  // how many hours until wakey?
+  // how many minutes until wakey?
   double currentMin = 60.0*current.hour() + current.minute();
   double wakeyMin = 60.0*wakeTime.hour() + wakeTime.minute();
 
-  double diffMin = wakeyMin - currentMin;
-  if ( diffMin < 0 ) 
-    diffMin = wakeyMin + (24.0*60)-currentMin; // remains of today + until wakey
-  int newHours = (diffMin / 60)+.5;
-  if ( newHours > 12 )
-    newHours = 11; // so can tell difference between this and backlight
-    
   bool show = forceChange || checkColorChange();
-  
-  if ( prevHours != newHours || show )
+
+  double diffMin = wakeyMin - currentMin;
+  if ( diffMin <= 0 ) 
   {
+    // for 15 minutes, animate
+    if ( diffMin > -15 )
+    {
+      if ( lastWakeChange == 0 || millis() - lastWakeChange > 100 )
+      {
+        lastWakeChange = millis();
+        for ( int i = 0; i < NEOPIXEL_LEDS; i++ )
+          strip.setPixelColor(i,Wheel(colorValue));
+        strip.setPixelColor(nextWake++ % NEOPIXEL_LEDS,0);
+        strip.show();
+        prevHours = -1;
+      }
+      DEBUG_PRINT("Wake UP! since diff min is ");
+      DEBUG_PRINTLN(diffMin);
+      return;
+    }
+      
+    diffMin = wakeyMin + (24.0*60)-currentMin; // remains of today + until wakey
+  }
+  lastWakeChange = 0;
+     
+  int newHours = 1.5 + (diffMin / 60); // last light 30 minutes
+  
+  
+  if ( newHours > 12 )
+  {
+    clearPixels();    
+    for ( int i = 0; i < NEOPIXEL_LEDS; i+=4 )
+      strip.setPixelColor(i,Wheel(colorValue));
+      
+    prevHours = newHours;      
+    show = true; 
+  }
+  else if ( prevHours != newHours || show )
+  {
+    clearPixels();    
     show = true;
-    if ( prevHours >= 0 )
-      strip.setPixelColor(prevHours,0);
     for ( int i = 0; i < abs(newHours); i++ )
       strip.setPixelColor(i,Wheel(colorValue));
-    DEBUG_PRINT( F("PreHours "));
+    DEBUG_PRINT( F("PrevHours "));
     DEBUG_PRINT( prevHours );
     DEBUG_PRINT( F(" newHours "));
     DEBUG_PRINTLN( newHours );
     prevHours = newHours;
   }
 
-  if ( millis() % 1000 == 0 )
+  if ( millis() % 1000 == 0 || show )
   {
-    DEBUG_PRINT( F("Wakey - current: "));
+    printTime(current);
+    DEBUG_PRINT( F(" (WakeyMin - currentMin) =  ("));
     DEBUG_PRINT( (int)wakeyMin );
-    DEBUG_PRINT( F("min - "));
+    DEBUG_PRINT( F(" - "));
     DEBUG_PRINT( (int)currentMin );
-    DEBUG_PRINT( F("min and diff is "));
+    DEBUG_PRINT( F(") and diff is "));
     DEBUG_PRINT( (int)diffMin );
     DEBUG_PRINT( F("min and show is "));
-    DEBUG_PRINTLN( show );
+    DEBUG_PRINT( show );
+    DEBUG_PRINT( F(" and forceChange is "));
+    DEBUG_PRINTLN( forceChange );
   }
 
   if ( show )
