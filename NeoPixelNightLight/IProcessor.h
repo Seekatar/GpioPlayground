@@ -14,12 +14,6 @@ protected:
                                                                   _strip(strip)
                                                                   {}
                                                                   
-    inline void clearPixels()
-    {
-        for ( int i = 0; i < _strip.numPixels(); i++ )
-            _strip.setPixelColor(i,0);
-    }
-    
     inline void printTime( DateTime &dt )
     {
         Serial.print( dt.hour() );
@@ -39,12 +33,12 @@ protected:
 
                                                                               
 public:
-    inline int Initialize( int eepromOffset )
+    inline virtual int Initialize( int eepromOffset )
     {
         return 0;
     }
     
-    inline bool Process( bool changingModes )
+    inline virtual bool Process( bool changingModes )
     {
         return true;
     }

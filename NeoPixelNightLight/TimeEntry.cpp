@@ -22,8 +22,7 @@ bool  TimeEntry::Process( bool changingModes )
 {
   if ( !_prompted || changingModes)
   {
-    clearPixels();
-    _strip.show();
+    _strip.colorWipe();
     
     Serial.print(F("Current wake time is "));
     printTime(_wakeTime);
@@ -34,16 +33,20 @@ bool  TimeEntry::Process( bool changingModes )
     
   }
   
-  if ( millis() % 100 == 0 )
+  if ( millis() - _lastAnimation > 100 )
   {
+      _lastAnimation = millis();
+      
       _strip.setPixelColor(_currentPixel,0);
-      _strip.setPixelColor(_strip.numPixels()-_currentPixel++,0);
+      _strip.setPixelColor(_strip.numPixels()-_currentPixel,0);
+      _currentPixel += 1;
       if ( _currentPixel >= _strip.numPixels() )
         _currentPixel = 0;
-      _strip.setPixelColor(_currentPixel,_strip.ColorValue);
-      _strip.setPixelColor(_strip.numPixels()-_currentPixel,_strip.ColorValue);
+        
+      _strip.setPixelColor(_currentPixel,_strip.Wheel(_strip.ColorValue));
+      _strip.setPixelColor(_strip.numPixels()-_currentPixel,_strip.Wheel(_strip.ColorValue));
+      
       _strip.show();
-      delay(5);
   }
   
   // if there's any serial available, read it:

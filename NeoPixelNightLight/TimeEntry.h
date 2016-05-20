@@ -7,18 +7,19 @@ class TimeEntry : public IProcessor
 {
 private:
     bool _prompted = false;
-    bool _currentPixel = 0;
+    int _currentPixel = 0;
     int _wakeEepromIndex = 0;
+    unsigned long _lastAnimation = 0;
     DateTime _wakeTime;
     
 public:
     TimeEntry(DateTime &currentTime,  NeoPixelWheel &strip ) : 
         IProcessor(currentTime, strip )
-        {}
+        {  }
         
-     int Initialize( int eepromOffset );
+     int virtual Initialize( int eepromOffset );
     
-     bool Process( bool changingModes );        
+     bool virtual Process( bool changingModes );        
 };
 
 #endif
