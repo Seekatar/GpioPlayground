@@ -14,36 +14,20 @@
 RTC_DS1307 rtc;
 // end RTC
 
-// neopixel
-#include <Adafruit_NeoPixel.h>
 #ifdef __AVR__
   #include <avr/power.h>
 #endif
 
+// neopixel
+#include "NeoPixelWheel.h"
+
 #define NEOPIXEL_DATA_PIN 6
 #define NEOPIXEL_LEDS 12
-
 #define ANALOG_COLOR_PIN A0  
 #define ANALOG_BRIGHTNESS_PIN A1  
-// how fast the wipe is when changing colors
-#define SWIPE_WAIT 0
 
-// Parameter 1 = number of pixels in strip
-// Parameter 2 = Arduino pin number (most are valid)
-// Parameter 3 = pixel type flags, add together as needed:
-//   NEO_KHZ800  800 KHz bitstream (most NeoPixel products w/WS2812 LEDs)
-//   NEO_KHZ400  400 KHz (classic 'v1' (not v2) FLORA pixels, WS2811 drivers)
-//   NEO_GRB     Pixels are wired for GRB bitstream (most NeoPixel products)
-//   NEO_RGB     Pixels are wired for RGB bitstream (v1 FLORA pixels, not v2)
-Adafruit_NeoPixel strip = Adafruit_NeoPixel(NEOPIXEL_LEDS, NEOPIXEL_DATA_PIN, NEO_GRB + NEO_KHZ800);
+NeoPixelWheel wheel = NeoPixelWheel(NEOPIXEL_LEDS, NEOPIXEL_DATA_PIN,ANALOG_COLOR_PIN,ANALOG_BRIGHTNESS_PIN);
 
-// IMPORTANT: To reduce NeoPixel burnout risk, add 1000 uF capacitor across
-// pixel power leads, add 300 - 500 Ohm resistor on first pixel's data input
-// and minimize distance between Arduino and first pixel.  Avoid connecting
-// on a live circuit...if you must, connect GND first.
-
-byte colorValue = 0;          // value read from the pot
-float brightnessValue = 1.0;   // value read from the pot
 // end neopixel
 
 // clock settings
@@ -186,8 +170,8 @@ void loop() {
       Serial.println(modes[mode]);
       EEPROM.put(MODE_INDEX,mode);
 
-      clearPixels();
-      strip.show();
+      wheel.colorWipe();
+      wheel.show();
     }
   }
   else
@@ -198,12 +182,6 @@ int sec = 0;
 int min = 0;
 int hr = 0;
 
-void clearPixels()
-{
-  for ( int i = 0; i < NEOPIXEL_LEDS; i++ )
-    strip.setPixelColor(i,0);
-}
-
 bool prompted = false;
 int currentPixel = 0;
 
@@ -211,8 +189,8 @@ bool enterAlarm(bool forceChange)
 {
   if ( !prompted || forceChange)
   {
-    clearPixels();
-    strip.show();
+    wheel.colorWipe();
+    wheel.show();
     Serial.print(F("Current wake time is "));
     printTime(wakeTime);
     Serial.println("");
@@ -222,13 +200,13 @@ bool enterAlarm(bool forceChange)
   }
   if ( millis() % 100 == 0 )
   {
-      strip.setPixelColor(currentPixel,0);
-      strip.setPixelColor(NEOPIXEL_LEDS-currentPixel++,0);
+      wheel.setPixelColor(currentPixel,0);
+      wheel.setPixelColor(NEOPIXEL_LEDS-currentPixel++,0);
       if ( currentPixel >= NEOPIXEL_LEDS )
         currentPixel = 0;
-      strip.setPixelColor(currentPixel,Wheel(colorValue));
-      strip.setPixelColor(NEOPIXEL_LEDS-currentPixel,Wheel(colorValue));
-      strip.show();
+      wheel.setPixelColor(currentPixel,wheel.Wheel(wheel.ColorValue));
+      wheel.setPixelColor(NEOPIXEL_LEDS-currentPixel,wheel.Wheel(wheel.ColorValue));
+      wheel.show();
       delay(5);
   }
   
@@ -263,31 +241,31 @@ bool enterAlarm(bool forceChange)
 *******************************************************************************/
 void clocklight(DateTime current) 
 {
-  strip.setPixelColor(sec,0);
-  strip.setPixelColor(min,0);
-  strip.setPixelColor(hr,0);
+  wheel.setPixelColor(sec,0);
+  wheel.setPixelColor(min,0);
+  wheel.setPixelColor(hr,0);
   
   sec = current.second() / 5;
   min = current.minute() / 5;
   hr = current.hour() % 12;
   
-  strip.setPixelColor(sec,secColor);
-  strip.setPixelColor(min,minColor);
-  strip.setPixelColor(hr,hrColor);
+  wheel.setPixelColor(sec,secColor);
+  wheel.setPixelColor(min,minColor);
+  wheel.setPixelColor(hr,hrColor);
 
   if ( sec == min && sec == hr )
-    strip.setPixelColor(sec,secColor | minColor | hrColor );
+    wheel.setPixelColor(sec,secColor | minColor | hrColor );
   else if ( sec == min )
-    strip.setPixelColor(sec,secColor | minColor);
+    wheel.setPixelColor(sec,secColor | minColor);
   else if ( sec == hr )
-    strip.setPixelColor(sec,secColor | hrColor);
+    wheel.setPixelColor(sec,secColor | hrColor);
   else if ( min == hr )
-    strip.setPixelColor(min,minColor | hrColor);
+    wheel.setPixelColor(min,minColor | hrColor);
   
-  checkColorChange();
-  strip.setBrightness(brightnessValue);
+  wheel.checkColorChange();
+  wheel.setBrightness(wheel.BrightnessValue);
   
-  strip.show();
+  wheel.show();
 
   #ifdef DEBUG
   sprintf( s, "%d:%d:%d - %d %d %d", current.hour(), current.minute(), current.second(), hr,min,sec);
@@ -307,7 +285,7 @@ void nightlight(DateTime current, bool forceChange)
   double currentMin = 60.0*current.hour() + current.minute();
   double wakeyMin = 60.0*wakeTime.hour() + wakeTime.minute();
 
-  bool show = forceChange || checkColorChange();
+  bool show = forceChange || wheel.checkColorChange();
 
   double diffMin = wakeyMin - currentMin;
   if ( diffMin <= 0 ) 
@@ -319,9 +297,9 @@ void nightlight(DateTime current, bool forceChange)
       {
         lastWakeChange = millis();
         for ( int i = 0; i < NEOPIXEL_LEDS; i++ )
-          strip.setPixelColor(i,Wheel(colorValue));
-        strip.setPixelColor(nextWake++ % NEOPIXEL_LEDS,0);
-        strip.show();
+          wheel.setPixelColor(i,wheel.Wheel(wheel.ColorValue));
+        wheel.setPixelColor(nextWake++ % NEOPIXEL_LEDS,0);
+        wheel.show();
         prevHours = -1;
       }
       DEBUG_PRINT("Wake UP! since diff min is ");
@@ -338,19 +316,19 @@ void nightlight(DateTime current, bool forceChange)
   
   if ( newHours > 12 )
   {
-    clearPixels();    
+    wheel.colorWipe();    
     for ( int i = 0; i < NEOPIXEL_LEDS; i+=4 )
-      strip.setPixelColor(i,Wheel(colorValue));
+      wheel.setPixelColor(i,wheel.Wheel(wheel.ColorValue));
       
     prevHours = newHours;      
     show = true; 
   }
   else if ( prevHours != newHours || show )
   {
-    clearPixels();    
+    wheel.colorWipe();    
     show = true;
     for ( int i = 0; i < abs(newHours); i++ )
-      strip.setPixelColor(i,Wheel(colorValue));
+      wheel.setPixelColor(i,wheel.Wheel(wheel.ColorValue));
     DEBUG_PRINT( F("PrevHours "));
     DEBUG_PRINT( prevHours );
     DEBUG_PRINT( F(" newHours "));
@@ -376,32 +354,7 @@ void nightlight(DateTime current, bool forceChange)
 #endif
 
   if ( show )
-    strip.show();
-}
-
-/*******************************************************************************
- * check to see if the analog inputs have change the color or brightness
-*******************************************************************************/
-bool checkColorChange()
-{
-  // read the analog in value:
-  byte newSensorValue = map(analogRead(ANALOG_COLOR_PIN), 0, 1023, 0, 255);
-  bool updateNeo = false;
-  if ( newSensorValue != colorValue )
-  {
-      colorValue = newSensorValue;
-      updateNeo = true;
-  }
-
-  float newSensorBrightness = map(analogRead(ANALOG_BRIGHTNESS_PIN), 0, 1023, 0, 255);
-  if (  brightnessValue != newSensorBrightness )
-  {
-      updateNeo = true;
-      brightnessValue = newSensorBrightness;
-      strip.setBrightness(brightnessValue);
-  }
-  
-  return updateNeo;  
+    wheel.show();
 }
 
 DateTime lastChange(2000,1,1);
@@ -416,11 +369,11 @@ void fadingBacklight(DateTime &current, bool forceChange )
 
   if ( forceChange || ts.totalseconds() > 1 ) 
   {
-    checkColorChange(); // for brightness only
+    wheel.checkColorChange(); // for brightness only
     fadeColorValue++;
     if ( fadeColorValue > 255 )
       fadeColorValue = 0;
-    colorWipe(Wheel(fadeColorValue),SWIPE_WAIT);
+    wheel.colorWipe(wheel.Wheel(fadeColorValue));
     lastChange = current;
   }
 }
@@ -429,52 +382,21 @@ void fadingBacklight(DateTime &current, bool forceChange )
 *******************************************************************************/
 void backlight(bool forceChange ) 
 {
-  if ( forceChange || checkColorChange() )
+  if ( forceChange || wheel.checkColorChange() )
   {
-    colorWipe(Wheel(colorValue),SWIPE_WAIT);
+    wheel.colorWipe(wheel.Wheel(wheel.ColorValue));
   }
 }
 
-// Input a value 0 to 255 to get a color value.
-// The colours are a transition r - g - b - back to r.
-uint32_t Wheel(byte WheelPos) {
-  WheelPos = 255 - WheelPos;
-  if(WheelPos < 85) {
-    return strip.Color(255 - WheelPos * 3, 0, WheelPos * 3);
-  }
-  if(WheelPos < 170) {
-    WheelPos -= 85;
-    return strip.Color(0, WheelPos * 3, 255 - WheelPos * 3);
-  }
-  WheelPos -= 170;
-  return strip.Color(WheelPos * 3, 255 - WheelPos * 3, 0);
-}
-
-// Fill the dots one after the other with a color
-void colorWipe(uint32_t c, uint8_t wait) {
-  for(uint16_t i=0; i<strip.numPixels(); i++) {
-    strip.setPixelColor(i, c);
-    strip.show();
-    delay(wait);
-  }
-}
 /*******************************************************************************
 *******************************************************************************/
 void neoPixelSetup()
 {
- // This is for Trinket 5V 16MHz, you can remove these three lines if you are not using a Trinket
-  #if defined (__AVR_ATtiny85__)
-    if (F_CPU == 16000000) clock_prescale_set(clock_div_1);
-  #endif
-  // End of trinket special code
 
 
-  strip.begin();
-  strip.show(); // Initialize all pixels to 'off'
-
-  secColor = strip.Color(0,0,255);  
-  minColor = strip.Color(0,255,0);  
-  hrColor = strip.Color(255,0,0);  
+  secColor = wheel.Color(0,0,255);  
+  minColor = wheel.Color(0,255,0);  
+  hrColor = wheel.Color(255,0,0);  
   
 }
 

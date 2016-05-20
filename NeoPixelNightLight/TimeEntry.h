@@ -1,0 +1,24 @@
+#ifndef __TIMEENTRY_H__
+#define __TIMEENTRY_H__
+
+#include "IProcessor.h"
+
+class TimeEntry : public IProcessor
+{
+private:
+    bool _prompted = false;
+    bool _currentPixel = 0;
+    int _wakeEepromIndex = 0;
+    DateTime _wakeTime;
+    
+public:
+    TimeEntry(DateTime &currentTime,  NeoPixelWheel &strip ) : 
+        IProcessor(currentTime, strip )
+        {}
+        
+     int Initialize( int eepromOffset );
+    
+     bool Process( bool changingModes );        
+};
+
+#endif
