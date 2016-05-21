@@ -67,6 +67,7 @@ void printTime( DateTime &dt )
 
 // mode settings
 #include "TimeEntry.h"
+#include "NeoClock.h"
 
 #define BACKLIGHT_MODE 0
 #define CLOCK_MODE  1
@@ -75,7 +76,7 @@ void printTime( DateTime &dt )
 #define NIGHTLIGHT_MODE 4
 char *modes[] = {"Backlight", "Clock", "Fader", "AlarmEnter", "Nightlight"};
 
-IProcessor *processors[] = { new TimeEntry(current,wheel) };
+IProcessor *processors[] = { new TimeEntry(current,wheel), new NeoClock(current, wheel) };
 
 #define MODE_SWITCH_PIN 10
 int mode = CLOCK_MODE; // BACKLIGHT_MODE;
@@ -107,22 +108,17 @@ void setup() {
   Serial.print(F("Got mode from eeprom ") );
   Serial.println(modes[mode]);
 
-  int32_t wakeUnixTime;
-  EEPROM.get(WAKE_INDEX, wakeUnixTime);
-  Serial.print(F("Got wakeTime from eeprom ") );
-  Serial.println(wakeUnixTime);
-  if ( wakeUnixTime >= 0 )
-    wakeTime = DateTime(wakeUnixTime);
-
   rtcSetup();
 
   wheel.Initialize();
 
-  secColor = wheel.Color(0, 0, 255);
-  minColor = wheel.Color(0, 255, 0);
-  hrColor = wheel.Color(255, 0, 0);
-
-  processors[0]->Initialize(MODE_INDEX);
+  int newIndex = MODE_INDEX;
+  for ( int i = 0; i < sizeof(processors)/sizeof(IProcessor*); i++ )
+  {
+    Serial.print("initalizing ");
+    Serial.println(i);
+    newIndex = processors[i]->Initialize(newIndex);
+  }
 
 }
 bool rtcRunning = false;
@@ -150,7 +146,7 @@ void loop() {
       backlight(forceChange);
       break;
     case CLOCK_MODE:
-      clocklight(current);
+      processors[1]->Process(forceChange); // clocklight(current);
       break;
     case FADING_BACKLIGHT_MODE:
       fadingBacklight(current, forceChange);

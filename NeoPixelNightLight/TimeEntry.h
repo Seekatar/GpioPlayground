@@ -13,8 +13,8 @@ private:
     DateTime _wakeTime;
     
 public:
-    TimeEntry(DateTime &currentTime,  NeoPixelWheel &strip ) : 
-        IProcessor(currentTime, strip )
+    TimeEntry(DateTime &currentTime,  NeoPixelWheel &wheel ) : 
+        IProcessor(currentTime, wheel )
         {  }
         
      int virtual Initialize( int eepromOffset );
