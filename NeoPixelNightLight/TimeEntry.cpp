@@ -8,11 +8,15 @@ int TimeEntry::Initialize( int eepromOffset )
     int32_t wakeUnixTime;
     EEPROM.get(_wakeEepromIndex,wakeUnixTime);
     
-    Serial.print(F("Got wakeTime from eeprom ") );
-    Serial.println(wakeUnixTime);
+    Serial.print(F("Got wakeTime from eeprom of ") );
+    Serial.print(wakeUnixTime);
     
     if ( wakeUnixTime >= 0 )
         _wakeTime = DateTime(wakeUnixTime);
+        
+    Serial.print(F(" which is ") );
+    printTime(_wakeTime);
+    Serial.println("");
     
     return eepromOffset + sizeof(int32_t);
 }
@@ -22,7 +26,7 @@ bool  TimeEntry::Process( bool changingModes )
 {
   if ( !_prompted || changingModes)
   {
-    _strip.colorWipe();
+    _wheel.colorWipe();
     
     Serial.print(F("Current wake time is "));
     printTime(_wakeTime);
@@ -37,16 +41,16 @@ bool  TimeEntry::Process( bool changingModes )
   {
       _lastAnimation = millis();
       
-      _strip.setPixelColor(_currentPixel,0);
-      _strip.setPixelColor(_strip.numPixels()-_currentPixel,0);
+      _wheel.setPixelColor(_currentPixel,0);
+      _wheel.setPixelColor(_wheel.numPixels()-_currentPixel,0);
       _currentPixel += 1;
-      if ( _currentPixel >= _strip.numPixels() )
+      if ( _currentPixel >= _wheel.numPixels() )
         _currentPixel = 0;
         
-      _strip.setPixelColor(_currentPixel,_strip.Wheel(_strip.ColorValue));
-      _strip.setPixelColor(_strip.numPixels()-_currentPixel,_strip.Wheel(_strip.ColorValue));
+      _wheel.setPixelColor(_currentPixel,_wheel.Wheel(_wheel.ColorValue));
+      _wheel.setPixelColor(_wheel.numPixels()-_currentPixel,_wheel.Wheel(_wheel.ColorValue));
       
-      _strip.show();
+      _wheel.show();
   }
   
   // if there's any serial available, read it:
@@ -64,7 +68,9 @@ bool  TimeEntry::Process( bool changingModes )
       _wakeTime = DateTime( 2016,1,1, // ignore y,m,d
                               hours,minutes); 
       printTime(_wakeTime);
-      Serial.println(F(" is new waketime"));     
+      Serial.print(F(" is new waketime ("));     
+      Serial.print(_wakeTime.unixtime());     
+      Serial.println(F(")"));     
       EEPROM.put(_wakeEepromIndex,_wakeTime.unixtime());
     }
     else

@@ -1,5 +1,6 @@
 #ifndef __IPROCESSOR_H__
 #define __IPROCESSOR_H__
+#include "jsDebug.h"
 
 #include <RTCLib.h>
 #include "NeoPixelWheel.h"
@@ -8,10 +9,10 @@ class IProcessor
 {
 protected:
     DateTime &_currentTime;
-    NeoPixelWheel &_strip;
+    NeoPixelWheel &_wheel;
        
-    IProcessor(DateTime &currentTime,  NeoPixelWheel &strip) : _currentTime(currentTime),
-                                                                  _strip(strip)
+    IProcessor(DateTime &currentTime,  NeoPixelWheel &wheel) : _currentTime(currentTime),
+                                                                  _wheel(wheel)
                                                                   {}
                                                                   
     inline void printTime( DateTime &dt )
@@ -33,14 +34,16 @@ protected:
 
                                                                               
 public:
+    // return next eepromOffset (add your size to eepromOffset)
     inline virtual int Initialize( int eepromOffset )
     {
         return 0;
     }
     
+    // return true to move to next mode
     inline virtual bool Process( bool changingModes )
     {
-        return true;
+        return false;
     }
 };
 

@@ -13,10 +13,12 @@ private:
     DateTime _wakeTime;
     
 public:
-    TimeEntry(DateTime &currentTime,  NeoPixelWheel &strip ) : 
-        IProcessor(currentTime, strip )
+    TimeEntry(DateTime &currentTime,  NeoPixelWheel &wheel ) : 
+        IProcessor(currentTime, wheel )
         {  }
         
+     const DateTime &WakeTime() const { return _wakeTime; }
+     
      int virtual Initialize( int eepromOffset );
     
      bool virtual Process( bool changingModes );        

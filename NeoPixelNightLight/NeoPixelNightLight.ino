@@ -67,6 +67,7 @@ void printTime( DateTime &dt )
 
 // mode settings
 #include "TimeEntry.h"
+#include "NeoClock.h"
 
 #define BACKLIGHT_MODE 0
 #define CLOCK_MODE  1
@@ -75,15 +76,14 @@ void printTime( DateTime &dt )
 #define NIGHTLIGHT_MODE 4
 char *modes[] = {"Backlight", "Clock", "Fader", "AlarmEnter", "Nightlight"};
 
-IProcessor *processors[] = { new TimeEntry(current,wheel) };
+TimeEntry timeEntry(current,wheel);
+IProcessor *processors[] = { &timeEntry, new NeoClock(current, wheel) };
 
 #define MODE_SWITCH_PIN 10
 int mode = CLOCK_MODE; // BACKLIGHT_MODE;
 char s[200];
 
 DateTime compileTime;
-DateTime wakeTime = DateTime( 2016, 1, 1, // ignore y,m,d
-                              5, 45); // 5:45am
 
 // EEPROM indexes
 const int MODE_INDEX = 0;
@@ -107,22 +107,17 @@ void setup() {
   Serial.print(F("Got mode from eeprom ") );
   Serial.println(modes[mode]);
 
-  int32_t wakeUnixTime;
-  EEPROM.get(WAKE_INDEX, wakeUnixTime);
-  Serial.print(F("Got wakeTime from eeprom ") );
-  Serial.println(wakeUnixTime);
-  if ( wakeUnixTime >= 0 )
-    wakeTime = DateTime(wakeUnixTime);
-
   rtcSetup();
 
   wheel.Initialize();
 
-  secColor = wheel.Color(0, 0, 255);
-  minColor = wheel.Color(0, 255, 0);
-  hrColor = wheel.Color(255, 0, 0);
-
-  processors[0]->Initialize(MODE_INDEX);
+  int newIndex = MODE_INDEX+sizeof(mode);
+  for ( int i = 0; i < sizeof(processors)/sizeof(IProcessor*); i++ )
+  {
+    Serial.print("initalizing ");
+    Serial.println(i);
+    newIndex = processors[i]->Initialize(newIndex);
+  }
 
 }
 bool rtcRunning = false;
@@ -150,13 +145,13 @@ void loop() {
       backlight(forceChange);
       break;
     case CLOCK_MODE:
-      clocklight(current);
+      processors[1]->Process(forceChange); 
       break;
     case FADING_BACKLIGHT_MODE:
       fadingBacklight(current, forceChange);
       break;
     case ALARM_ENTER:
-      if ( processors[0]->Process(forceChange)) // enterAlarm(forceChange) )
+      if ( processors[0]->Process(forceChange)) 
         next = true;
       break;
     case NIGHTLIGHT_MODE:
@@ -189,101 +184,6 @@ void loop() {
     pressed = false;
 }
 
-int sec = 0;
-int min = 0;
-int hr = 0;
-
-bool prompted = false;
-int currentPixel = 0;
-
-bool enterAlarm(bool forceChange)
-{
-  if ( !prompted || forceChange)
-  {
-    wheel.setAllPixels();
-    wheel.show();
-    Serial.print(F("Current wake time is "));
-    printTime(wakeTime);
-    Serial.println("");
-    Serial.println(F("Enter time to wake in 24 hour clock HH,MM"));
-    prompted = true;
-
-  }
-  if ( millis() % 100 == 0 )
-  {
-    wheel.setPixelColor(currentPixel, 0);
-    wheel.setPixelColor(NEOPIXEL_LEDS - currentPixel++, 0);
-    if ( currentPixel >= NEOPIXEL_LEDS )
-      currentPixel = 0;
-    wheel.setPixelColor(currentPixel, wheel.Wheel(wheel.ColorValue));
-    wheel.setPixelColor(NEOPIXEL_LEDS - currentPixel, wheel.Wheel(wheel.ColorValue));
-    wheel.show();
-    delay(5);
-  }
-
-  // if there's any serial available, read it:
-  if (Serial.available() > 0) {
-
-    // look for the next valid integer in the incoming serial stream:
-    int hours = Serial.parseInt();
-    // do it again:
-    int minutes = Serial.parseInt();
-    while (Serial.available() > 0) {
-      Serial.read(); // pull off rest
-    }
-    if ( hours >= 0 && hours < 24 && minutes >= 0 && minutes < 60 )
-    {
-      wakeTime = DateTime( 2016, 1, 1, // ignore y,m,d
-                           hours, minutes);
-      printTime(wakeTime);
-      Serial.println(F(" is new waketime"));
-      EEPROM.put(WAKE_INDEX, wakeTime.unixtime());
-    }
-    else
-      Serial.println(F("Invalid time.  Must be 0-23 for hour and 0-59 for minute"));
-
-    prompted = false;
-
-    return true;
-  }
-  return false;
-}
-/*******************************************************************************
-*******************************************************************************/
-void clocklight(DateTime current)
-{
-  wheel.setPixelColor(sec, 0);
-  wheel.setPixelColor(min, 0);
-  wheel.setPixelColor(hr, 0);
-
-  sec = current.second() / 5;
-  min = current.minute() / 5;
-  hr = current.hour() % 12;
-
-  wheel.setPixelColor(sec, secColor);
-  wheel.setPixelColor(min, minColor);
-  wheel.setPixelColor(hr, hrColor);
-
-  if ( sec == min && sec == hr )
-    wheel.setPixelColor(sec, secColor | minColor | hrColor );
-  else if ( sec == min )
-    wheel.setPixelColor(sec, secColor | minColor);
-  else if ( sec == hr )
-    wheel.setPixelColor(sec, secColor | hrColor);
-  else if ( min == hr )
-    wheel.setPixelColor(min, minColor | hrColor);
-
-  wheel.checkColorChange();
-  wheel.setBrightness(wheel.BrightnessValue);
-
-  wheel.show();
-
-#ifdef DEBUG
-  sprintf( s, "%d:%d:%d - %d %d %d", current.hour(), current.minute(), current.second(), hr, min, sec);
-  DEBUG_PRINTLN(s);
-#endif
-}
-
 int prevHours = -1;
 int nextWake = 0;
 unsigned long lastWakeChange = 0;
@@ -293,6 +193,7 @@ unsigned long lastWakeChange = 0;
 void nightlight(DateTime current, bool forceChange)
 {
   // how many minutes until wakey?
+  DateTime wakeTime = timeEntry.WakeTime();
   double currentMin = 60.0 * current.hour() + current.minute();
   double wakeyMin = 60.0 * wakeTime.hour() + wakeTime.minute();
 
@@ -403,15 +304,16 @@ void backlight(bool forceChange )
 *******************************************************************************/
 void rtcSetup() {
 
-  if (! rtc.begin()) {
+  if (!rtc.begin()) {
     while (1)
     {
       Serial.println(F("Couldn't find RTC"));
       delay(1000);
     }
   }
+  rtcRunning = true;
 
-  if (! rtc.isrunning()) {
+  if (!rtc.isrunning()) {
     Serial.println(F("RTC is NOT running!"));
     // following line sets the RTC to the date & time this sketch was compiled
     rtc.adjust(compileTime);
