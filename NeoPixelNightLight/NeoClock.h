@@ -3,7 +3,11 @@
 
 #include "IProcessor.h"
 
-class NeoClock : public IProcessor
+/// <summary>
+/// Processor showing a clock on the wheel
+/// </summary>
+/// <seealso cref="Processor" />
+class NeoClock : public Processor
 {
 private:
     int hr, min, sec;
@@ -15,12 +19,12 @@ private:
     
 public:
     NeoClock(DateTime &currentTime,  NeoPixelWheel &wheel ) : 
-        IProcessor(currentTime, wheel )
+        Processor("NeoClock", currentTime, wheel )
         {  }
         
-     int virtual Initialize( int eepromOffset );
+     int virtual initialize( int eepromOffset );
     
-     bool virtual Process( bool changingModes );        
+     bool virtual process( bool changingModes );        
 };
 
 #endif

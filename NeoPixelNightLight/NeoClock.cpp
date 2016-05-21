@@ -1,6 +1,6 @@
 #include "NeoClock.h"
         
-int NeoClock::Initialize( int eepromOffset )
+int NeoClock::initialize( int eepromOffset )
 {
     _secColor = _wheel.Color(0, 0, 255);
     _minColor = _wheel.Color(0, 255, 0);
@@ -9,7 +9,7 @@ int NeoClock::Initialize( int eepromOffset )
     return eepromOffset;        
 }
 
-bool  NeoClock::Process( bool changingModes )
+bool  NeoClock::process( bool changingModes )
 {
   _wheel.setPixelColor(sec, 0);
   _wheel.setPixelColor(min, 0);
@@ -33,13 +33,13 @@ bool  NeoClock::Process( bool changingModes )
     _wheel.setPixelColor(min, _minColor | _hrColor);
 
   _wheel.checkColorChange();
-  _wheel.setBrightness(_wheel.BrightnessValue);
+  _wheel.setBrightness(_wheel.brightnessIndexValue);
 
   _wheel.show();
 
 #ifdef DEBUG
-  sprintf( s, "%d:%d:%d - %d %d %d", current.hour(), current.minute(), current.second(), hr, min, sec);
-  DEBUG_PRINTLN(s);
+  DEBUG_PRINTTIME( _currentTime );
+  DEBUG_PRINTLN("");
 #endif
 
     return false;    

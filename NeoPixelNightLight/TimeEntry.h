@@ -3,7 +3,11 @@
 
 #include "IProcessor.h"
 
-class TimeEntry : public IProcessor
+/// <summary>
+/// Processor for getting new alarm time from Serial input
+/// </summary>
+/// <seealso cref="Processor" />
+class TimeEntry : public Processor
 {
 private:
     bool _prompted = false;
@@ -14,14 +18,18 @@ private:
     
 public:
     TimeEntry(DateTime &currentTime,  NeoPixelWheel &wheel ) : 
-        IProcessor(currentTime, wheel )
+        Processor("TimeEntry", currentTime, wheel )
         {  }
         
-     const DateTime &WakeTime() const { return _wakeTime; }
+    /// <summary>
+    /// Get the wakeup time
+    /// </summary>
+    /// <returns>time from EEPROM</returns>
+    const DateTime &WakeTime() const { return _wakeTime; }
      
-     int virtual Initialize( int eepromOffset );
+     int virtual initialize( int eepromOffset );
     
-     bool virtual Process( bool changingModes );        
+     bool virtual process( bool changingModes );        
 };
 
 #endif

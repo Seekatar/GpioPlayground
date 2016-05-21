@@ -3,6 +3,10 @@
 
 #include <Adafruit_NeoPixel.h>
 
+/// <summary>
+/// An Adafruit_NeoPixel-derived class for handling a wheel
+/// </summary>
+/// <seealso cref="Adafruit_NeoPixel" />
 class NeoPixelWheel : public Adafruit_NeoPixel
 {
     int _colorAnalogPin;
@@ -17,7 +21,10 @@ class NeoPixelWheel : public Adafruit_NeoPixel
 
     }
 
-    void Initialize()
+    /// <summary>
+    /// Initializes this instance.
+    /// </summary>
+    void initialize()
     {
       // This is for Trinket 5V 16MHz, you can remove these three lines if you are not using a Trinket
 #if defined (__AVR_ATtiny85__)
@@ -32,12 +39,19 @@ class NeoPixelWheel : public Adafruit_NeoPixel
 
     }
 
-    byte ColorValue = 0;          // value read from the pot
-    float BrightnessValue = 1.0;   // value read from the pot
+    byte colorIndexValue = 0;          // value read from the pot
+    float brightnessIndexValue = 1.0;   // value read from the pot
 
-    // Input a value 0 to 255 to get a color value.
-    // The colours are a transition r - g - b - back to r.
-    uint32_t Wheel(byte WheelPos) {
+
+
+    /// <summary>
+    /// Gets a color wheel value (Adafruit function)
+    /// </summary>
+    /// Input a value 0 to 255 to get a color value.
+    /// The colours are a transition r - g - b - back to r.
+    /// <param name="WheelPos">The wheel position.</param>
+    /// <returns></returns>
+    uint32_t colorWheel(byte WheelPos) {
       WheelPos = 255 - WheelPos;
       if (WheelPos < 85) {
         return Color(255 - WheelPos * 3, 0, WheelPos * 3);
@@ -51,13 +65,21 @@ class NeoPixelWheel : public Adafruit_NeoPixel
     }
 
     
+    /// <summary>
+    /// Sets all pixels to one color, without calling show()
+    /// </summary>
+    /// <param name="c">The c.</param>
     void setAllPixels(uint32_t c = 0) {
       for (uint16_t i = 0; i < numPixels(); i++) {
         setPixelColor(i, c);
       }
     }
     
-    // Fill the dots one after the other with a color
+    /// <summary>
+    /// Fill the dots one after the other with a color (Adafruit function)
+    /// </summary>
+    /// <param name="c">The color.</param>
+    /// <param name="wait">The wait delay after each pixel is set.</param>
     void colorWipe(uint32_t c = 0, uint8_t wait = 0) {
       for (uint16_t i = 0; i < numPixels(); i++) {
         setPixelColor(i, c);
@@ -69,23 +91,27 @@ class NeoPixelWheel : public Adafruit_NeoPixel
         show();
     }
 
+    /// <summary>
+    /// Checks the color and brightness change by reading the analog input
+    /// </summary>
+    /// <returns>true if there was a change</returns>
     bool checkColorChange()
     {
       // read the analog in value:
       byte newSensorValue = map(analogRead(_colorAnalogPin), 0, 1023, 0, 255);
       bool updateNeo = false;
-      if ( newSensorValue != ColorValue )
+      if ( newSensorValue != colorIndexValue )
       {
-        ColorValue = newSensorValue;
+        colorIndexValue = newSensorValue;
         updateNeo = true;
       }
 
       float newSensorBrightness = map(analogRead(_brightnessAnalogPin), 0, 1023, 0, 255);
-      if (  BrightnessValue != newSensorBrightness )
+      if (  brightnessIndexValue != newSensorBrightness )
       {
         updateNeo = true;
-        BrightnessValue = newSensorBrightness;
-        setBrightness(BrightnessValue);
+        brightnessIndexValue = newSensorBrightness;
+        setBrightness(brightnessIndexValue);
       }
 
       return updateNeo;

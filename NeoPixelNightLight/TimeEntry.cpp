@@ -1,7 +1,7 @@
 #include "TimeEntry.h"
 #include <EEPROM.h>
         
-int TimeEntry::Initialize( int eepromOffset )
+int TimeEntry::initialize( int eepromOffset )
 {
     _wakeEepromIndex = eepromOffset;
     
@@ -22,7 +22,7 @@ int TimeEntry::Initialize( int eepromOffset )
 }
 
     
-bool  TimeEntry::Process( bool changingModes )
+bool  TimeEntry::process( bool changingModes )
 {
   if ( !_prompted || changingModes)
   {
@@ -47,8 +47,8 @@ bool  TimeEntry::Process( bool changingModes )
       if ( _currentPixel >= _wheel.numPixels() )
         _currentPixel = 0;
         
-      _wheel.setPixelColor(_currentPixel,_wheel.Wheel(_wheel.ColorValue));
-      _wheel.setPixelColor(_wheel.numPixels()-_currentPixel,_wheel.Wheel(_wheel.ColorValue));
+      _wheel.setPixelColor(_currentPixel,_wheel.colorWheel(_wheel.colorIndexValue));
+      _wheel.setPixelColor(_wheel.numPixels()-_currentPixel,_wheel.colorWheel(_wheel.colorIndexValue));
       
       _wheel.show();
   }

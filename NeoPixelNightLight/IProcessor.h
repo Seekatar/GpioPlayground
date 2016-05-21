@@ -1,21 +1,30 @@
-#ifndef __IPROCESSOR_H__
-#define __IPROCESSOR_H__
+#ifndef __PROCESSOR_H__
+#define __PROCESSOR_H__
 #include "jsDebug.h"
 
 #include <RTCLib.h>
 #include "NeoPixelWheel.h"
 
-class IProcessor
+/// <summary>
+/// Base class for all Processors
+/// </summary>
+class Processor
 {
 protected:
     DateTime &_currentTime;
     NeoPixelWheel &_wheel;
+    const char * _name;
        
-    IProcessor(DateTime &currentTime,  NeoPixelWheel &wheel) : _currentTime(currentTime),
-                                                                  _wheel(wheel)
+    Processor(const char *name, DateTime &currentTime,  NeoPixelWheel &wheel) : _currentTime(currentTime),
+                                                                  _wheel(wheel), _name(name)
                                                                   {}
                                                                   
-    inline void printTime( DateTime &dt )
+public:
+    /// <summary>
+    /// Prints the time to serial
+    /// </summary>
+    /// <param name="dt">The dt.</param>
+    inline static void printTime(DateTime &dt)
     {
         Serial.print( dt.hour() );
         int minutes = dt.minute();
@@ -33,15 +42,28 @@ protected:
     }
 
                                                                               
-public:
-    // return next eepromOffset (add your size to eepromOffset)
-    inline virtual int Initialize( int eepromOffset )
+    /// <summary>
+    /// Gets the name of this instance.
+    /// </summary>
+    /// <returns></returns>
+    inline const char *name() const { return _name; }
+    
+    /// <summary>
+    /// Initializes this processor, called once 
+    /// </summary>
+    /// <param name="eepromOffset">The eeprom offset.</param>
+    /// <returns>return next eepromOffset (add your size to eepromOffset)</returns>
+    inline virtual int initialize(int eepromOffset)
     {
-        return 0;
+        return eepromOffset;
     }
     
-    // return true to move to next mode
-    inline virtual bool Process( bool changingModes )
+    /// <summary>
+    /// Called each time in processing loop, when this Processor selected
+    /// </summary>
+    /// <param name="changingModes">true if changing from a different processor, false if just looping on this one</param>
+    /// <returns>true to move to next Processor</returns>
+    inline virtual bool process(bool changingModes)
     {
         return false;
     }

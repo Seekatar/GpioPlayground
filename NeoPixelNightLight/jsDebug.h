@@ -1,6 +1,8 @@
 #ifndef __JSDEBUG_H__
 #define __JSDEBUG_H__
 
+//#define DEBUG
+
 #ifdef DEBUG
 
 #define DEBUG_PRINT(n) Serial.print(n);
