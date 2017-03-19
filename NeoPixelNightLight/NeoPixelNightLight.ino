@@ -20,8 +20,9 @@ RTC_DS1307 rtc;
 // neopixel
 #include "NeoPixelWheel.h"
 
-#define NEOPIXEL_DATA_PIN 6
 #define NEOPIXEL_LEDS 12
+
+#define NEOPIXEL_DATA_PIN 6
 #define ANALOG_COLOR_PIN A0
 #define ANALOG_BRIGHTNESS_PIN A1
 
@@ -146,21 +147,22 @@ void rtcSetup() {
       delay(1000);
     }
   }
-  
-  DateTime now = rtc.now();
-  Serial.print( F("Rtc now is "));
-  Serial.print(now.unixtime(),HEX);
-  Serial.print(F(" which is "));
-  Processor::printTime(now);
-  Serial.println("");
-  
-  haveRtc = now.hour() <= 24 || now.minute() <= 60 || now.month() <= 12; // all above succeeds
 
-  if (!rtc.isrunning()) {
-    Serial.println(F("RTC is NOT running!"));
+  if ( rtc.isrunning() ) {
     // following line sets the RTC to the date & time this sketch was compiled
     rtc.adjust(compileTime);
+  
+    DateTime now = rtc.now();
+    Serial.print( F("Rtc now is "));
+    Serial.print(now.unixtime(),HEX);
+    Serial.print(F(" which is "));
+    Processor::printTime(now);
+    Serial.println("");
+    
+    haveRtc = now.hour() <= 24 || now.minute() <= 60 || now.month() <= 12; // all above succeeds
   }
-
+  else {
+    Serial.println(F("RTC is NOT running!"));
+  }
 }
 
