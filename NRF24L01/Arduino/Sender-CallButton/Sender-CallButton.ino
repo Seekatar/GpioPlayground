@@ -36,7 +36,7 @@ void setup()
 
   // Set the PA Level low to prevent power supply related issues since this is a
  // getting_started sketch, and the likelihood of close proximity of the devices. RF24_PA_MAX is default.
-  radio.setPALevel(RF24_PA_LOW);
+  radio.setPALevel(RF24_PA_MAX);
   
   // Open a writing and reading pipe on each radio, with opposite addresses
   radio.openWritingPipe(addresses[1]);
@@ -67,11 +67,16 @@ void loop()
   if ( digitalRead( BUTTON_PIN ) == LOW )
   {
     Serial.println("button low");
-    if ( sendValue( callSent ? CLEAR_ALERT : SEND_ALERT ) )
+    bool currentValue = callSent;
+    // flash until sent ok
+    while ( !sendValue( callSent ? CLEAR_ALERT : SEND_ALERT ) )
     {
-      callSent = !callSent;
-      digitalWrite( RED_LED, callSent ? HIGH : LOW );
+      delay(100);
+      currentValue = !currentValue; 
+      digitalWrite( RED_LED, currentValue ? HIGH : LOW );
     }
+    callSent = !callSent;
+    digitalWrite( RED_LED, callSent ? HIGH : LOW );
     delay(500);
   }
 }
@@ -87,7 +92,7 @@ void sendPing()
   }
   else
   {
-    digitalWrite( GREEN_LED, LOW );
+    analogWrite( GREEN_LED, 100 );
   }
 }
 

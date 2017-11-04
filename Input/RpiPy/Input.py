@@ -15,7 +15,8 @@ if __name__ == "__main__":
 	parser.add_argument("--up", "-u", action='store_true', help="pud up instead of pud down")
 	args = parser.parse_args()
 
-	pins = 3,5,7,8,10,11,12,13,15,16,18,19,21,22,23,24,26
+	pins =   3,5,7, 8,10,11,12,13,15,16,18,19,21,22,23,24,26,29,31,32,33,35,36,37,38,40
+	iopins = 2,3,4,14,15,17,18,27,22,23,24,10, 9,25,11, 8, 7, 5, 6,12,13,19,16,26,20,21
 
 	print "Pin Readings"
 	s = ""
@@ -27,14 +28,20 @@ if __name__ == "__main__":
 
 	io.setwarnings(False)
 	io.setmode(io.BOARD)
+	s = "PIN "
 	for i in pins:
 		io.setup(i,io.IN,updown)
 		s += "%3d" % i
 	print s
 
+	s = "BCM "
+	for i in iopins:
+		s += "%3d" % i
+	print s
+
 	try:
 		while(True):
-			s = ""
+			s = "    "
 			for i in pins:
 				if ( io.input(i) == io.HIGH ):
 					s += "  1"

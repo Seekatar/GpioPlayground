@@ -13,6 +13,7 @@ Universal Kit for Arduino/
 *.sdf
 *.opendb
 my_keys.h
+.vscode
 
 # Compiled source #
 ###################
