@@ -90,7 +90,7 @@ bool haveRtc = false;
 bool pressed = false;
 bool changingModes = false;
 
-// helper to get time for testing if no UTC available
+// helper to get time for testing if no RTC available
 DateTime getCurrent()
 {
   DateTime ret;
@@ -99,14 +99,14 @@ DateTime getCurrent()
   else
     ret = compileTime.unixtime() + millis() / 50; // speed up time! use 1000 for close to real time
 
-  // need to sprint forward? 2am, second Sunday in March
-  if ( ret.month() == 2 && ret.dayOfTheWeek() == 0 && ret.hour() == 2 && (ret.day() % 7) == 1 )
+  // need to spring forward? 2am, second Sunday in March
+  if ( ret.month() == 3 && ret.dayOfTheWeek() == 0 && ret.hour() == 2 && (ret.day() / 7) == 1 && inDst == 0)
   {
     inDst = 1;
     ret = ret + TimeSpan(0,1,0,0);
     rtc.adjust(ret);
   }
-  else if ( ret.month() == 11 && ret.dayOfTheWeek() == 0 && ret.hour() == 2 && (ret.day() % 7) == 0 && inDst == 1 )
+  else if ( ret.month() == 11 && ret.dayOfTheWeek() == 0 && ret.hour() == 2 && (ret.day() / 7) == 0 && inDst == 1 )
   {
     // need to fall back first Sunday in November 2am back to 1am
     inDst = 0;
@@ -187,7 +187,7 @@ DateTime NthDayInMonth(int year, char month, char DOW, char NthWeek, int hour, i
   }
   //Adjust for weeks
   targetDate += (NthWeek-1)*7;
-  return new DateTime ( year, month, targetDate, hour, min );
+  return DateTime ( year, month, targetDate, hour, min );
 }
  
 void setDst( DateTime current )
@@ -202,6 +202,14 @@ void setDst( DateTime current )
        inDst = 0;
   Serial.print("Setting DST to ");
   Serial.println(inDst);
+  char buffer[100];
+  sprintf(buffer, "Current  is %d/%d/%d %d:%d", (int)current.month(), (int)current.day(), (int)current.year(), (int)current.hour(), (int)current.minute() );
+  Serial.println(buffer);
+  sprintf(buffer, "StartDst is %d/%d/%d %d:%d", (int)startDst.month(), (int)startDst.day(), (int)startDst.year(), (int)startDst.hour(), (int)startDst.minute() );
+  Serial.println(buffer);
+  sprintf(buffer, "EndDst   is %d/%d/%d %d:%d", (int)endDst.month(), (int)endDst.day(), (int)endDst.year(), (int)endDst.hour(), (int)endDst.minute() );
+  Serial.println(buffer);
+
 }
 
 /*******************************************************************************
