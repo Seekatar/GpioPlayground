@@ -40,25 +40,27 @@ DateTime current;
 #include "FadingBacklight.h"
 #include "Nightlight.h"
 
-TimeEntry timeEntry(current,wheel);
-Processor *processors[] = { new Backlight(current,wheel), new NeoClock(current, wheel), new FadingBacklight(current,wheel), &timeEntry, new Nightlight(current, wheel, timeEntry) };
-#define PROCESSOR_COUNT sizeof(processors)/sizeof(Processor*)
+TimeEntry timeEntry(current, wheel);
+Processor *processors[] = {new Backlight(current, wheel), new NeoClock(current, wheel), new FadingBacklight(current, wheel), &timeEntry, new Nightlight(current, wheel, timeEntry)};
+#define PROCESSOR_COUNT sizeof(processors) / sizeof(Processor *)
 
 #define MODE_SWITCH_PIN 10
-int mode = 0; 
+int mode = 0;
 int inDst = 0;
 
 DateTime compileTime;
 
-const int MODE_INDEX = 0;           // EEPROM index of mode (int)
+const int MODE_INDEX = 0; // EEPROM index of mode (int)
 
 /*******************************************************************************
 *******************************************************************************/
-void setup() {
+void setup()
+{
   compileTime = DateTime(F(__DATE__), F(__TIME__));
 
 #ifndef ESP8266
-  while (!Serial); // for Leonardo/Micro/Zero
+  while (!Serial)
+    ; // for Leonardo/Micro/Zero
 #endif
 
   Serial.begin(57600);
@@ -66,25 +68,24 @@ void setup() {
   pinMode(MODE_SWITCH_PIN, INPUT_PULLUP);
 
   EEPROM.get(MODE_INDEX, mode);
-  
-  if ( mode < 0 || mode >= PROCESSOR_COUNT)
+
+  if (mode < 0 || mode >= PROCESSOR_COUNT)
     mode = 0;
-  Serial.print(F("Got mode from eeprom ") );
+  Serial.print(F("Got mode from eeprom "));
   Serial.println(processors[mode]->name());
 
   rtcSetup();
 
   wheel.initialize();
 
-  int newIndex = MODE_INDEX+sizeof(mode);
-  for ( int i = 0; i < PROCESSOR_COUNT; i++ )
+  int newIndex = MODE_INDEX + sizeof(mode);
+  for (int i = 0; i < PROCESSOR_COUNT; i++)
   {
     Serial.print("Initalizing ");
     Serial.println(processors[i]->name());
     newIndex = processors[i]->initialize(newIndex);
     Serial.println("ok");
   }
-
 }
 bool haveRtc = false;
 bool pressed = false;
@@ -94,53 +95,54 @@ bool changingModes = false;
 DateTime getCurrent()
 {
   DateTime ret;
-  if ( haveRtc )
+  if (haveRtc)
     ret = rtc.now();
   else
     ret = compileTime.unixtime() + millis() / 50; // speed up time! use 1000 for close to real time
 
   // need to spring forward? 2am, second Sunday in March
-  if ( ret.month() == 3 && ret.dayOfTheWeek() == 0 && ret.hour() == 2 && (ret.day() / 7) == 1 && inDst == 0)
+  if (ret.month() == 3 && ret.dayOfTheWeek() == 0 && ret.hour() == 2 && (ret.day() / 7) == 1 && inDst == 0)
   {
     inDst = 1;
-    ret = ret + TimeSpan(0,1,0,0);
+    ret = ret + TimeSpan(0, 1, 0, 0);
     rtc.adjust(ret);
   }
-  else if ( ret.month() == 11 && ret.dayOfTheWeek() == 0 && ret.hour() == 2 && (ret.day() / 7) == 0 && inDst == 1 )
+  else if (ret.month() == 11 && ret.dayOfTheWeek() == 0 && ret.hour() == 2 && (ret.day() / 7) == 0 && inDst == 1)
   {
     // need to fall back first Sunday in November 2am back to 1am
     inDst = 0;
-    ret = ret - TimeSpan(0,1,0,0);
+    ret = ret - TimeSpan(0, 1, 0, 0);
     rtc.adjust(ret);
   }
-  
+
   return ret;
 }
 
 /*******************************************************************************
 *******************************************************************************/
-void loop() {
+void loop()
+{
 
   current = getCurrent();
   bool next = false;
 
-  if ( mode < 0 || mode >= PROCESSOR_COUNT )
+  if (mode < 0 || mode >= PROCESSOR_COUNT)
     mode = 0;
-    
+
   next = processors[mode]->process(changingModes);
-    
+
   changingModes = false;
 
-  if ( digitalRead(MODE_SWITCH_PIN) == LOW  || next )
+  if (digitalRead(MODE_SWITCH_PIN) == LOW || next)
   {
-    if ( !pressed || next )
+    if (!pressed || next)
     {
       next = false;
       pressed = true;
       mode++;
-      if ( mode >= PROCESSOR_COUNT )
+      if (mode >= PROCESSOR_COUNT)
         mode = 0;
-        
+
       EEPROM.put(MODE_INDEX, mode);
 
       changingModes = true;
@@ -165,12 +167,12 @@ void loop() {
     Altered to use char when possible to save microcontroller ram
 --------------------------------------------------------------------------*/
 char dow(int y, char m, char d)
-   {
-       static char t[] = {0, 3, 2, 5, 0, 3, 5, 1, 4, 6, 2, 4};
-       y -= m < 3;
-       return (y + y/4 - y/100 + y/400 + t[m-1] + d) % 7;
-   }
- 
+{
+  static char t[] = {0, 3, 2, 5, 0, 3, 5, 1, 4, 6, 2, 4};
+  y -= m < 3;
+  return (y + y / 4 - y / 100 + y / 400 + t[m - 1] + d) % 7;
+}
+
 /*--------------------------------------------------------------------------
   FUNC: 6/11/11 - Returns the date for Nth day of month. For instance,
     it will return the numeric date for the 2nd Sunday of April
@@ -178,69 +180,77 @@ char dow(int y, char m, char d)
   RETURNS: date
   NOTES: There is no error checking for invalid inputs.
 --------------------------------------------------------------------------*/
-DateTime NthDayInMonth(int year, char month, char DOW, char NthWeek, int hour, int min ){
+DateTime NthDayInMonth(int year, char month, char DOW, char NthWeek, int hour, int min)
+{
   char targetDate = 1;
-  char firstDOW = dow(year,month,targetDate);
-  while (firstDOW != DOW){
-    firstDOW = (firstDOW+1)%7;
+  char firstDOW = dow(year, month, targetDate);
+  while (firstDOW != DOW)
+  {
+    firstDOW = (firstDOW + 1) % 7;
     targetDate++;
   }
   //Adjust for weeks
-  targetDate += (NthWeek-1)*7;
-  return DateTime ( year, month, targetDate, hour, min );
+  targetDate += (NthWeek - 1) * 7;
+  return DateTime(year, month, targetDate, hour, min);
 }
- 
-void setDst( DateTime current )
+
+void setDst(DateTime current)
 {
   // a bit imperfect if in the Fall back hour, but this only called when initialized, so don't flash it at those times.
-  
-  DateTime startDst = NthDayInMonth( current.year(), 3, 0, 2, 2, 0 ); // 2am second sunday in March
-  DateTime endDst = NthDayInMonth( current.year(), 11, 0, 1, 2, 0 ); // 2am first sunday in November
+
+  DateTime startDst = NthDayInMonth(current.year(), 3, 0, 2, 2, 0); // 2am second sunday in March
+  DateTime endDst = NthDayInMonth(current.year(), 11, 0, 1, 2, 0);  // 2am first sunday in November
   inDst = 1;
-  if ( current.secondstime() < startDst.secondstime() || 
-       current.secondstime() > endDst.secondstime() )
-       inDst = 0;
+  if (current.secondstime() < startDst.secondstime() ||
+      current.secondstime() > endDst.secondstime())
+    inDst = 0;
   Serial.print("Setting DST to ");
   Serial.println(inDst);
   char buffer[100];
-  sprintf(buffer, "Current  is %d/%d/%d %d:%d", (int)current.month(), (int)current.day(), (int)current.year(), (int)current.hour(), (int)current.minute() );
+  sprintf(buffer, "Current  is %d/%d/%d %d:%d", (int)current.month(), (int)current.day(), (int)current.year(), (int)current.hour(), (int)current.minute());
   Serial.println(buffer);
-  sprintf(buffer, "StartDst is %d/%d/%d %d:%d", (int)startDst.month(), (int)startDst.day(), (int)startDst.year(), (int)startDst.hour(), (int)startDst.minute() );
+  sprintf(buffer, "StartDst is %d/%d/%d %d:%d", (int)startDst.month(), (int)startDst.day(), (int)startDst.year(), (int)startDst.hour(), (int)startDst.minute());
   Serial.println(buffer);
-  sprintf(buffer, "EndDst   is %d/%d/%d %d:%d", (int)endDst.month(), (int)endDst.day(), (int)endDst.year(), (int)endDst.hour(), (int)endDst.minute() );
+  sprintf(buffer, "EndDst   is %d/%d/%d %d:%d", (int)endDst.month(), (int)endDst.day(), (int)endDst.year(), (int)endDst.hour(), (int)endDst.minute());
   Serial.println(buffer);
-
 }
 
 /*******************************************************************************
  * Setup the RealTimeClock breakout
 *******************************************************************************/
-void rtcSetup() {
+void rtcSetup()
+{
 
-  if (!rtc.begin()) {
+  if (!rtc.begin())
+  {
     while (1)
     {
       Serial.println(F("Couldn't find RTC"));
       delay(1000);
     }
   }
+  Serial.println("rtc.begin() returned true");
 
-  if ( rtc.isrunning() ) {
+  // if not running, set time.
+  if (!rtc.isrunning())
+  {
+
+    Serial.println(F("RTC is NOT running.  Setting to compile time."));
+
     // following line sets the RTC to the date & time this sketch was compiled
     rtc.adjust(compileTime);
     setDst(compileTime);
-  
-    DateTime now = rtc.now();
-    Serial.print( F("Rtc now is "));
-    Serial.print(now.unixtime(),HEX);
-    Serial.print(F(" which is "));
-    Processor::printTime(now);
-    Serial.println("");
-    
-    haveRtc = now.hour() <= 24 || now.minute() <= 60 || now.month() <= 12; // all above succeeds
-  }
-  else {
-    Serial.println(F("RTC is NOT running!"));
-  }
-}
 
+  }
+  else
+  {
+    Serial.println(F("RTC is running!"));
+  }
+  DateTime now = rtc.now();
+  haveRtc = now.hour() <= 24 || now.minute() <= 60 || now.month() <= 12; // all above succeeds
+  Serial.print(F("Rtc now is "));
+  Serial.print(now.unixtime(), HEX);
+  Serial.print(F(" which is "));
+  Processor::printTime(now);
+  Serial.println("");
+}

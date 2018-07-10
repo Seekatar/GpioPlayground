@@ -1,12 +1,39 @@
+#include "OledDisplay.h"
+
 #define ledPin 9
+int pins[3] = {MBED_GPIO_31, MBED_GPIO_27, MBED_GPIO_12};
+int pinCount = 3;
 void setup() {
-  // put your setup code here, to run once:
+  Screen.init();
+  Screen.print(0,"PWM Test");
+  Screen.print(1,"Output test");
+  Screen.print(2,"Initializing...");
+
+  for ( int i = 0; i < pinCount; i++)
+    pinMode(i, OUTPUT);
   
+  pinMode(USER_BUTTON_A, INPUT);
+
+  Screen.print(2,"Ready...");
 }
 
+int pin = pinCount-1;
+char buffer[100];
 void loop() {
-  // analogWrite(ledPin,128);
-  fadeinout();
+
+  if ( digitalRead(USER_BUTTON_A) == LOW )
+  {
+      digitalWrite(pins[pin], LOW);
+      if ( ++pin >= pinCount )
+        pin = 0;
+
+      snprintf(buffer, 100, "Setting %d to %d%%", pins[pin], 10000/255);
+      Screen.print(3,buffer);
+      digitalWrite(pins[pin], HIGH);
+
+
+      delay(500); 
+  }
 }
 
 void fadeinout() 
