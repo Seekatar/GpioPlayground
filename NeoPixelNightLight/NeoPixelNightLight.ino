@@ -90,6 +90,7 @@ void setup()
 bool haveRtc = false;
 bool pressed = false;
 bool changingModes = false;
+bool gotCurrent = false;
 
 // helper to get time for testing if no RTC available
 DateTime getCurrent()
@@ -100,19 +101,36 @@ DateTime getCurrent()
   else
     ret = compileTime.unixtime() + millis() / 50; // speed up time! use 1000 for close to real time
 
+  if ( !gotCurrent )
+  {
+      Serial.print("getCurrent first time ");
+      Processor::printDateTime(ret);
+      Serial.println();
+      gotCurrent = true;
+  }
+
   // need to spring forward? 2am, second Sunday in March
   if (ret.month() == 3 && ret.dayOfTheWeek() == 0 && ret.hour() == 2 && (ret.day() / 7) == 1 && inDst == 0)
   {
     inDst = 1;
     ret = ret + TimeSpan(0, 1, 0, 0);
     rtc.adjust(ret);
+    ret = rtc.now();
+    Serial.print("Springing forward to ");
+    Processor::printDate(ret);
+    Serial.println();
+
   }
-  else if (ret.month() == 11 && ret.dayOfTheWeek() == 0 && ret.hour() == 2 && (ret.day() / 7) == 0 && inDst == 1)
+  else if (ret.month() == 11 && ret.dayOfTheWeek() == 0 && ret.hour() >= 2 && (ret.day() / 7) == 0 && inDst == 1)
   {
     // need to fall back first Sunday in November 2am back to 1am
     inDst = 0;
     ret = ret - TimeSpan(0, 1, 0, 0);
     rtc.adjust(ret);
+    ret = rtc.now();
+    Serial.print("Falling back to ");
+    Processor::printDate(ret);
+    Serial.println();
   }
 
   return ret;
@@ -146,7 +164,7 @@ void loop()
       EEPROM.put(MODE_INDEX, mode);
 
       changingModes = true;
-      Processor::printTime(current);
+      Processor::printDateTime(current);
       Serial.print(F(" Switching mode to "));
       Serial.println(processors[mode]->name());
 
@@ -204,15 +222,18 @@ void setDst(DateTime current)
   if (current.secondstime() < startDst.secondstime() ||
       current.secondstime() > endDst.secondstime())
     inDst = 0;
-  Serial.print("Setting DST to ");
+
+  Serial.print("Set DST to ");
   Serial.println(inDst);
-  char buffer[100];
-  sprintf(buffer, "Current  is %d/%d/%d %d:%d", (int)current.month(), (int)current.day(), (int)current.year(), (int)current.hour(), (int)current.minute());
-  Serial.println(buffer);
-  sprintf(buffer, "StartDst is %d/%d/%d %d:%d", (int)startDst.month(), (int)startDst.day(), (int)startDst.year(), (int)startDst.hour(), (int)startDst.minute());
-  Serial.println(buffer);
-  sprintf(buffer, "EndDst   is %d/%d/%d %d:%d", (int)endDst.month(), (int)endDst.day(), (int)endDst.year(), (int)endDst.hour(), (int)endDst.minute());
-  Serial.println(buffer);
+  Serial.print( "Current  is ");
+  Processor::printDateTime(current); 
+  Serial.println();
+  Serial.print( "StartDst is ");
+  Processor::printDateTime(startDst); 
+  Serial.println();
+  Serial.print( "EndDst   is ");
+  Processor::printDateTime(endDst); 
+  Serial.println();
 }
 
 /*******************************************************************************
@@ -231,16 +252,17 @@ void rtcSetup()
   }
   Serial.println("rtc.begin() returned true");
 
+  Serial.print("Compile time is ");
+  Processor::printDateTime(compileTime);
+  Serial.println();
+
   // if not running, set time.
   if (!rtc.isrunning())
   {
-
     Serial.println(F("RTC is NOT running.  Setting to compile time."));
 
     // following line sets the RTC to the date & time this sketch was compiled
     rtc.adjust(compileTime);
-    setDst(compileTime);
-
   }
   else
   {
@@ -248,9 +270,11 @@ void rtcSetup()
   }
   DateTime now = rtc.now();
   haveRtc = now.hour() <= 24 || now.minute() <= 60 || now.month() <= 12; // all above succeeds
+
+  setDst(now);
   Serial.print(F("Rtc now is "));
   Serial.print(now.unixtime(), HEX);
   Serial.print(F(" which is "));
-  Processor::printTime(now);
+  Processor::printDateTime(now, true);
   Serial.println("");
 }

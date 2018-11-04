@@ -20,6 +20,31 @@ protected:
                                                                   {}
                                                                   
 public:
+    inline static void printDateTime(DateTime &dt, bool dow = false)
+    {
+        printDate(dt,dow);
+        Serial.print(" ");
+        printTime(dt);
+    }
+
+    /// <summary>
+    /// Prints the time to serial
+    /// </summary>
+    /// <param name="dt">The dt.</param>
+    inline static void printDate(DateTime &dt, bool dow = false)
+    {
+        Serial.print( dt.month() );
+        Serial.print( "/" );
+        Serial.print( dt.day() );
+        Serial.print( "/" );
+        Serial.print(dt.year());
+        if ( dow )
+        {
+            Serial.print(" dow: ");
+            Serial.print(dt.dayOfTheWeek());
+        }
+    }
+
     /// <summary>
     /// Prints the time to serial
     /// </summary>
