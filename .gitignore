@@ -54,3 +54,6 @@ my_keys.h
 .Trashes
 ehthumbs.db
 Thumbs.db
+
+**/build
+**/my_keys.h

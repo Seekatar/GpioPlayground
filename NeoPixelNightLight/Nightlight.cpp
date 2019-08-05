@@ -4,9 +4,9 @@
 bool  Nightlight::process( bool changingModes )
 {
  // how many minutes until wakey?
-  DateTime wakeTime = _timeEntry.WakeTime();
-  double currentMin = 60.0 * _currentTime.hour() + _currentTime.minute();
-  double wakeyMin = 60.0 * wakeTime.hour() + wakeTime.minute();
+  time_t wakeTime = _timeEntry.WakeTime();
+  double currentMin = 60.0 * hour(_currentTime) + minute(_currentTime);
+  double wakeyMin = 60.0 * hour(wakeTime) + minute(wakeTime);
 
   bool show = changingModes || _wheel.checkColorChange();
 
@@ -37,24 +37,24 @@ bool  Nightlight::process( bool changingModes )
   int newHours = 1.5 + (diffMin / 60); // last light 30 minutes
 
 
-  // if over 11 hours before alarm, just show 3 lights 
+  // if over 11 hours before alarm, just show 3 lights
   if ( newHours > 11  )
   {
     if ( millis() - _lastIdleChange > 1000 )
     {
       _lastIdleChange = millis();
-      
+
       _wheel.setAllPixels();
       for ( int i = _idlePixel; i < _wheel.numPixels(); i += 4 )
         _wheel.setPixelColor(i, _wheel.colorWheel(_wheel.colorIndexValue));
       _idlePixel += 1;
       if ( _idlePixel > 3)
         _idlePixel = 0;
-        
+
       _prevHours = newHours;
       show = true;
-      
-      // Odd, if do this, _wheel.ColorValue varies a bunch   
+
+      // Odd, if do this, _wheel.ColorValue varies a bunch
       //DEBUG_PRINT( F(" colorValue "));
       //DEBUG_PRINTLN( _wheel.ColorValue );
     }
@@ -62,15 +62,15 @@ bool  Nightlight::process( bool changingModes )
   else if ( _prevHours != newHours || show )
   {
     _lastIdleChange = 0;
-    
+
     _wheel.setAllPixels();
     show = true;
     for ( int i = 0; i < abs(newHours); i++ )
       _wheel.setPixelColor(i, _wheel.colorWheel(_wheel.colorIndexValue));
-      
+
     _prevHours = newHours;
 
-    // Odd, if do this, _wheel.ColorValue varies a bunch   
+    // Odd, if do this, _wheel.ColorValue varies a bunch
     //DEBUG_PRINT( F("PrevHours "));
     //DEBUG_PRINT( _prevHours );
     //DEBUG_PRINT( F(" newHours "));
@@ -99,6 +99,6 @@ bool  Nightlight::process( bool changingModes )
   if ( show )
     _wheel.show();
 
-  return false;    
+  return false;
 }
-    
+

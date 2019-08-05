@@ -10,11 +10,11 @@
 class Backlight : public Processor
 {
 public:
-    Backlight(DateTime &currentTime,  NeoPixelWheel &wheel ) : 
+    Backlight(time_t &currentTime,  NeoPixelWheel &wheel ) :
         Processor("Backlight", currentTime, wheel )
         {  }
-        
-    
+
+
      inline bool virtual process( bool changingModes )
      {
         if ( changingModes || _wheel.checkColorChange() )
@@ -22,7 +22,7 @@ public:
             _wheel.colorWipe(_wheel.colorWheel(_wheel.colorIndexValue));
         }
         return false;
-     }         
+     }
 };
 
 #endif
