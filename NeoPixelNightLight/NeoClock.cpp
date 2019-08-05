@@ -15,9 +15,9 @@ bool  NeoClock::process( bool changingModes )
   _wheel.setPixelColor(min, 0);
   _wheel.setPixelColor(hr, 0);
 
-  sec = _currentTime.second() / 5;
-  min = _currentTime.minute() / 5;
-  hr = _currentTime.hour() % 12;
+  sec = second(_currentTime) / 5;
+  min = minute(_currentTime) / 5;
+  hr = hour(_currentTime) % 12;
 
   _wheel.setPixelColor(sec, _secColor);
   _wheel.setPixelColor(min, _minColor);

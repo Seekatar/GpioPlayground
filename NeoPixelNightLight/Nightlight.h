@@ -17,13 +17,13 @@ private:
     unsigned long _lastIdleChange = 0;
     int _idlePixel = 0;
 
-    
+
 public:
-    Nightlight(DateTime &currentTime,  NeoPixelWheel &wheel, TimeEntry &timeEntry ) : 
+    Nightlight(time_t &currentTime,  NeoPixelWheel &wheel, TimeEntry &timeEntry ) :
         Processor("Nightlight", currentTime, wheel ), _timeEntry(timeEntry)
         {  }
-        
-     bool virtual process( bool changingModes );        
+
+     bool virtual process( bool changingModes );
 };
 
 #endif

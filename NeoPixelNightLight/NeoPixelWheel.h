@@ -91,29 +91,42 @@ class NeoPixelWheel : public Adafruit_NeoPixel
         show();
     }
 
+#define MAX_ANALOG_VALUE 960
+#define MIN_ANALOG_VALUE 25
+
     /// <summary>
     /// Checks the color and brightness change by reading the analog input
     /// </summary>
     /// <returns>true if there was a change</returns>
     bool checkColorChange()
     {
+        bool updateNeo = false;
       // read the analog in value:
-      byte newSensorValue = map(analogRead(_colorAnalogPin), 0, 1023, 0, 255);
-      bool updateNeo = false;
-      if ( newSensorValue != colorIndexValue )
-      {
-        colorIndexValue = newSensorValue;
-        updateNeo = true;
-      }
-
-      float newSensorBrightness = map(analogRead(_brightnessAnalogPin), 0, 1023, 0, 255);
-      if (  brightnessIndexValue != newSensorBrightness )
+//      byte newSensorValue = constrain(map(analogRead(_colorAnalogPin), MIN_ANALOG_VALUE, MAX_ANALOG_VALUE, 0, 255),0,255);
+//      if ( newSensorValue != colorIndexValue )
+//      {
+//        colorIndexValue = newSensorValue;
+//        updateNeo = true;
+//      }
+      // ESP8266 only has one analog pin
+      colorIndexValue = 155;
+      
+//        float newSensorBrightness = 50;
+      float newSensorBrightness = constrain(map(analogRead(_brightnessAnalogPin), MIN_ANALOG_VALUE, MAX_ANALOG_VALUE, 0, 255),0,255);
+      if (brightnessIndexValue != newSensorBrightness)
       {
         updateNeo = true;
         brightnessIndexValue = newSensorBrightness;
         setBrightness(brightnessIndexValue);
       }
 
+//      if (updateNeo)
+//      {
+//        Serial.print("Updating neo with color/brightness: ");
+//        Serial.print(newSensorValue);
+//        Serial.print("/");
+//        Serial.println(brightnessIndexValue);
+//      }
       return updateNeo;
     }
 };

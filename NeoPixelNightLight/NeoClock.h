@@ -11,20 +11,20 @@ class NeoClock : public Processor
 {
 private:
     int hr, min, sec;
-    
+
     uint32_t _secColor = 0;
     uint32_t _minColor = 0;
     uint32_t _hrColor = 0;
 
-    
+
 public:
-    NeoClock(DateTime &currentTime,  NeoPixelWheel &wheel ) : 
+    NeoClock(time_t &currentTime,  NeoPixelWheel &wheel ) :
         Processor("NeoClock", currentTime, wheel )
         {  }
-        
+
      int virtual initialize( int eepromOffset );
-    
-     bool virtual process( bool changingModes );        
+
+     bool virtual process( bool changingModes );
 };
 
 #endif
