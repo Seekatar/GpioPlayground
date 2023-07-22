@@ -1,23 +1,23 @@
 #include "NeoClock.h"
-        
+
 int NeoClock::initialize( int eepromOffset )
 {
     _secColor = _wheel.Color(0, 0, 255);
     _minColor = _wheel.Color(0, 255, 0);
     _hrColor = _wheel.Color(255, 0, 0);
 
-    return eepromOffset;        
+    return eepromOffset;
 }
 
-bool  NeoClock::process( bool changingModes )
+bool NeoClock::process( bool changingModes )
 {
   _wheel.setPixelColor(sec, 0);
   _wheel.setPixelColor(min, 0);
   _wheel.setPixelColor(hr, 0);
 
-  sec = _currentTime.second() / 5;
-  min = _currentTime.minute() / 5;
-  hr = _currentTime.hour() % 12;
+  sec = second(_currentTime) / 5;
+  min = minute(_currentTime) / 5;
+  hr = hour(_currentTime) % 12;
 
   _wheel.setPixelColor(sec, _secColor);
   _wheel.setPixelColor(min, _minColor);
@@ -42,5 +42,5 @@ bool  NeoClock::process( bool changingModes )
   DEBUG_PRINTLN("");
 #endif
 
-    return false;    
+    return false;
 }

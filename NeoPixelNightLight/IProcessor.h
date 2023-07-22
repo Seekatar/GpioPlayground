@@ -2,8 +2,8 @@
 #define __PROCESSOR_H__
 #include "jsDebug.h"
 
-#include <RTCLib.h>
 #include "NeoPixelWheel.h"
+#include <ezTime.h>
 
 /// <summary>
 /// Base class for all Processors
@@ -11,16 +11,16 @@
 class Processor
 {
 protected:
-    DateTime &_currentTime;
+    time_t &_currentTime;
     NeoPixelWheel &_wheel;
     const char * _name;
-       
-    Processor(const char *name, DateTime &currentTime,  NeoPixelWheel &wheel) : _currentTime(currentTime),
+
+    Processor(const char *name, time_t &currentTime,  NeoPixelWheel &wheel) : _currentTime(currentTime),
                                                                   _wheel(wheel), _name(name)
                                                                   {}
-                                                                  
+
 public:
-    inline static void printDateTime(DateTime &dt, bool dow = false)
+    inline static void printDateTime(time_t &dt, bool dow = false)
     {
         printDate(dt,dow);
         Serial.print(" ");
@@ -31,17 +31,17 @@ public:
     /// Prints the time to serial
     /// </summary>
     /// <param name="dt">The dt.</param>
-    inline static void printDate(DateTime &dt, bool dow = false)
+    inline static void printDate(time_t &dt, bool dow = false)
     {
-        Serial.print( dt.month() );
+        Serial.print( month(dt) );
         Serial.print( "/" );
-        Serial.print( dt.day() );
+        Serial.print( day(dt) );
         Serial.print( "/" );
-        Serial.print(dt.year());
+        Serial.print(year(dt));
         if ( dow )
         {
             Serial.print(" dow: ");
-            Serial.print(dt.dayOfTheWeek());
+            Serial.print(weekday(dt));
         }
     }
 
@@ -49,11 +49,11 @@ public:
     /// Prints the time to serial
     /// </summary>
     /// <param name="dt">The dt.</param>
-    inline static void printTime(DateTime &dt)
+    inline static void printTime(time_t &dt)
     {
-        Serial.print( dt.hour() );
-        int minutes = dt.minute();
-        int seconds = dt.second();
+        Serial.print( hour(dt) );
+        int minutes = minute(dt);
+        int seconds = second(dt);
         if ( minutes < 10 )
             Serial.print( ":0" );
         else
@@ -66,15 +66,15 @@ public:
         Serial.print(seconds);
     }
 
-                                                                              
+
     /// <summary>
     /// Gets the name of this instance.
     /// </summary>
     /// <returns></returns>
     inline const char *name() const { return _name; }
-    
+
     /// <summary>
-    /// Initializes this processor, called once 
+    /// Initializes this processor, called once
     /// </summary>
     /// <param name="eepromOffset">The eeprom offset.</param>
     /// <returns>return next eepromOffset (add your size to eepromOffset)</returns>
@@ -82,7 +82,7 @@ public:
     {
         return eepromOffset;
     }
-    
+
     /// <summary>
     /// Called each time in processing loop, when this Processor selected
     /// </summary>
