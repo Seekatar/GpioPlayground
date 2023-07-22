@@ -1,7 +1,7 @@
 #include "Nightlight.h"
 #include "jsDebug.h"
 
-bool  Nightlight::process( bool changingModes )
+bool Nightlight::process( bool changingModes )
 {
  // how many minutes until wakey?
   time_t wakeTime = _timeEntry.WakeTime();

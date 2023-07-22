@@ -86,7 +86,7 @@ void setup()
   setDebug(INFO);
 
   Serial.println("Connecting to WiFi " SSID);
-  WiFi.begin(SSID, PASSPHRASE");
+  WiFi.begin(SSID, PASSPHRASE);
 
   waitForSync();
   if (!currentTz.setLocation(LOCATION))
