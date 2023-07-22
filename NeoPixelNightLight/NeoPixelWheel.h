@@ -2,6 +2,7 @@
 #define __COLORSETTINGS_H_
 
 #include <Adafruit_NeoPixel.h>
+#include "smoothing.h"
 
 /// <summary>
 /// An Adafruit_NeoPixel-derived class for handling a wheel
@@ -11,6 +12,7 @@ class NeoPixelWheel : public Adafruit_NeoPixel
 {
   int _colorAnalogPin;
   int _brightnessAnalogPin;
+  Smoothing _brightnessSmoothing = Smoothing();
 
 public:
   NeoPixelWheel(int numLeds, int dataPin, int colorAnalogPin, int brightnessAnalogPin) : Adafruit_NeoPixel(numLeds, dataPin, NEO_GRB + NEO_KHZ800), _colorAnalogPin(colorAnalogPin),
@@ -101,7 +103,6 @@ public:
   /// <returns>true if there was a change</returns>
   bool checkColorChange()
   {
-    Serial.print(">>>> Checking color change:");
     bool updateNeo = false;
 
     // read the analog in value:
@@ -118,6 +119,7 @@ public:
 #endif
 
     float newSensorBrightness = constrain(map(analogRead(_brightnessAnalogPin), MIN_ANALOG_VALUE, MAX_ANALOG_VALUE, 0, 255), 0, 255);
+    newSensorBrightness = _brightnessSmoothing.Smooth(newSensorBrightness);
     if (brightnessIndexValue != newSensorBrightness)
     {
       updateNeo = true;
@@ -127,9 +129,12 @@ public:
 
     if (updateNeo)
     {
-      Serial.print("Updating neo with color/brightness: ");
+      Serial.print("Updating neo with ");
+#ifdef have_color_analog_pin
+      Serial.print("color: ");
       Serial.print(newSensorValue);
-      Serial.print("/");
+#endif
+      Serial.print(" brightness: ");
       Serial.println(brightnessIndexValue);
     }
     return updateNeo;

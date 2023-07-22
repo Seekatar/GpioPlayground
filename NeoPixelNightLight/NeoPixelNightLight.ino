@@ -87,6 +87,8 @@ void setup()
 
   Serial.println("Connecting to WiFi " SSID);
   WiFi.begin(SSID, PASSPHRASE);
+  Serial.print("Mac address is ");
+  Serial.println(WiFi.macAddress());
 
   waitForSync();
   if (!currentTz.setLocation(LOCATION))
