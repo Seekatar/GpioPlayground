@@ -120,7 +120,7 @@ public:
 
     float newSensorBrightness = constrain(map(analogRead(_brightnessAnalogPin), MIN_ANALOG_VALUE, MAX_ANALOG_VALUE, 0, 255), 0, 255);
     newSensorBrightness = _brightnessSmoothing.Smooth(newSensorBrightness);
-    if (brightnessIndexValue != newSensorBrightness)
+    if (abs(brightnessIndexValue - newSensorBrightness) > 5)
     {
       updateNeo = true;
       brightnessIndexValue = newSensorBrightness;
